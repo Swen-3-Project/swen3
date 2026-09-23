@@ -30,7 +30,7 @@ mvn spring-boot:run
 
 Flyway applies `V1__create_documents.sql` and `V2__create_reminders.sql` at startup. Hibernate validates the resulting schema. Tests mock repositories and do not need a running database.
 
-`mvn verify` runs the test suite, creates the executable JAR, and writes a JaCoCo coverage report to `target/site/jacoco/index.html`. The current integrated draft has 18 passing tests and 88.4% line coverage.
+`mvn verify` runs the test suite, creates the executable JAR, and writes a JaCoCo coverage report to `target/site/jacoco/index.html`. The Sprint 1 release has 18 passing tests and 88.4% line coverage.
 
 ## REST API
 
@@ -67,4 +67,4 @@ Completing a reminder twice returns the completed reminder without writing a dup
 
 ## Team workflow
 
-`main` is for accepted releases, `dev` is the integration branch, feature branches contain individual stories, and `release/sprint-1` is prepared after team review. Local feature drafts are in `.handoff/` and are intentionally ignored by Git. Each teammate reviews their draft, configures their own Git identity, commits their own branch, and pushes while signed in to their own GitHub account. Do not set a teammate's author identity on someone else's commit or change commit dates. No branch or issue is pushed or closed by this local preparation.
+`main` contains the accepted Sprint 1 release. `dev` is the integration branch, `feature/document-crud` and `feature/reminders` retain the individual feature commits, and `release/sprint-1` records the tested release. The feature branches were merged through pull requests #52 and #53, followed by release pull request #54 into `main`. Sprint 1 issues were closed by that release merge. Future work should follow the same branch, review, CI, and release sequence.
