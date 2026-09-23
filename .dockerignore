@@ -1,0 +1,7 @@
+.git
+.idea
+.env
+.handoff
+output
+target
+*.log

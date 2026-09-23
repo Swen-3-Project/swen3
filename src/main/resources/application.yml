@@ -1,0 +1,22 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: paperless-rest
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/paperless}
+    username: ${DB_USER:paperless}
+    password: ${DB_PASSWORD:paperless_dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
