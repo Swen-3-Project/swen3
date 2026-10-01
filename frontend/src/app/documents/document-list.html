@@ -1,0 +1,62 @@
+<section
+  class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4"
+>
+  <div>
+    <h1>Dokumente</h1>
+    <p class="text-body-secondary">Ihre Ablage mit Metadaten und Bearbeitungsstatus.</p>
+  </div>
+  <a class="btn btn-primary" routerLink="/documents/new">Dokument anlegen</a>
+</section>
+@if (loading()) {
+  <div class="d-flex align-items-center gap-2 py-3" role="status">
+    <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span
+    ><span>Dokumente werden geladen …</span>
+  </div>
+} @else if (error()) {
+  <div class="alert alert-danger" role="alert">
+    <p>{{ error() }}</p>
+    <button class="btn btn-outline-primary" (click)="load()">Erneut versuchen</button>
+  </div>
+} @else {
+  <section class="card card-body shadow-sm mb-4">
+    @if (!documents().length) {
+      <div class="text-center text-body-secondary py-4">
+        <h2>Noch keine Dokumente</h2>
+        <p>Legen Sie ein Dokument an, um Ihre Ablage zu beginnen.</p>
+        <a class="btn btn-primary" routerLink="/documents/new">Erstes Dokument anlegen</a>
+      </div>
+    } @else {
+      <p class="text-body-secondary">{{ documents().length }} Dokumente · Neueste zuerst</p>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0" aria-label="Dokumentliste">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Dateiname</th>
+              <th scope="col">Status</th>
+              <th scope="col">Dateigröße</th>
+              <th scope="col">Angelegt am</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (document of documents(); track document.id) {
+              <tr>
+                <td>
+                  <a class="filename" [routerLink]="['/documents', document.id]">{{
+                    document.filename
+                  }}</a>
+                </td>
+                <td>
+                  <span class="badge rounded-pill text-bg-primary">{{
+                    document.status | statusLabel
+                  }}</span>
+                </td>
+                <td>{{ document.fileSize | fileSize }}</td>
+                <td>{{ document.createdAt | date: 'dd.MM.yyyy, HH:mm' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+}
