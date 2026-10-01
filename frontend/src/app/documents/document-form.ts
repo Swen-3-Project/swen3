@@ -4,6 +4,7 @@ import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angu
 import { Router, RouterLink } from '@angular/router';
 import { DocumentApi } from '../core/document-api';
 import { apiErrorMessage } from '../core/api-error';
+import { applyServerErrors, fieldError, notBlank, safeInteger } from '../shared/form-validation';
 
 @Component({
   selector: 'app-document-form',
@@ -16,17 +17,14 @@ export class DocumentForm {
   private readonly destroyRef = inject(DestroyRef);
   readonly saving = signal(false);
   readonly error = signal('');
+  readonly fieldError = fieldError;
   readonly form = inject(FormBuilder).nonNullable.group({
-    filename: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(255)]],
-    mimeType: [
-      'application/pdf',
-      [Validators.required, Validators.pattern(/\S/), Validators.maxLength(127)],
-    ],
+    filename: ['', [Validators.required, notBlank, Validators.maxLength(255)]],
+    mimeType: ['application/pdf', [Validators.required, notBlank, Validators.maxLength(127)]],
     fileSize: new FormControl<number | null>(null, [
       Validators.required,
       Validators.min(0),
-      (control) =>
-        control.value === null || Number.isSafeInteger(control.value) ? null : { integer: true },
+      safeInteger,
     ]),
     title: ['', Validators.maxLength(255)],
     description: [''],
@@ -56,6 +54,7 @@ export class DocumentForm {
         error: (error) => {
           this.saving.set(false);
           this.error.set(apiErrorMessage(error));
+          applyServerErrors(this.form, error);
         },
       });
   }

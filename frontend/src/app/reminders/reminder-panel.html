@@ -1,0 +1,183 @@
+<section class="card card-body shadow-sm mb-4" aria-labelledby="reminders-heading">
+  <h2 id="reminders-heading">Erinnerungen</h2>
+  @if (loading()) {
+    <div class="d-flex align-items-center gap-2 py-3" role="status">
+      <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span
+      ><span>Erinnerungen werden geladen …</span>
+    </div>
+  } @else if (loadError()) {
+    <div class="alert alert-danger" role="alert">
+      <p>{{ loadError() }}</p>
+      <button class="btn btn-outline-primary" (click)="load()">Erneut versuchen</button>
+    </div>
+  } @else {
+    @if (!reminders().length) {
+      <p class="text-center text-body-secondary py-4">
+        Noch keine Erinnerungen für dieses Dokument.
+      </p>
+    }
+    @for (reminder of reminders(); track reminder.id) {
+      <article class="card card-body mb-3 reminder" [attr.aria-label]="reminder.title">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+          <h3>{{ reminder.title }}</h3>
+          <span
+            class="badge rounded-pill"
+            [class.text-bg-success]="reminder.status === 'COMPLETED'"
+            [class.text-bg-primary]="reminder.status !== 'COMPLETED'"
+            >{{ reminder.status | statusLabel }}</span
+          >
+        </div>
+        <p class="text-body-secondary">Fällig am {{ reminder.dueDate | calendarDate }}</p>
+        @if (reminder.description) {
+          <p class="preserve-text">{{ reminder.description }}</p>
+        }
+        @if (reminder.completedAt) {
+          <p class="text-body-secondary">
+            Erledigt am {{ reminder.completedAt | date: 'dd.MM.yyyy, HH:mm' }}
+          </p>
+        }
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          @if (reminder.status === 'OPEN') {
+            <button
+              class="btn btn-outline-primary"
+              type="button"
+              (click)="complete(reminder)"
+              [disabled]="!!completing()"
+            >
+              {{ completing() === reminder.id ? 'Wird erledigt …' : 'Als erledigt markieren' }}
+            </button>
+          }
+          <button
+            class="btn btn-outline-primary"
+            type="button"
+            (click)="toggleHistory(reminder.id)"
+            [attr.aria-expanded]="openHistory() === reminder.id"
+          >
+            {{ openHistory() === reminder.id ? 'Verlauf schließen' : 'Verlauf ansehen' }}
+          </button>
+        </div>
+        @if (openHistory() === reminder.id) {
+          <section class="border-top mt-3 pt-3" aria-label="Erinnerungsverlauf">
+            @if (historyLoading()) {
+              <div class="d-flex align-items-center gap-2 py-3" role="status">
+                <span
+                  class="spinner-border spinner-border-sm text-primary"
+                  aria-hidden="true"
+                ></span
+                ><span>Verlauf wird geladen …</span>
+              </div>
+            } @else if (historyError()) {
+              <div class="alert alert-danger" role="alert">
+                <p>{{ historyError() }}</p>
+                <button
+                  class="btn btn-outline-primary"
+                  type="button"
+                  (click)="loadHistory(reminder.id)"
+                >
+                  Erneut versuchen
+                </button>
+              </div>
+            } @else {
+              <ol>
+                @for (event of history(); track event.id) {
+                  <li>
+                    <strong>{{ event.event | statusLabel }}</strong> ·
+                    {{ event.occurredAt | date: 'dd.MM.yyyy, HH:mm' }}
+                  </li>
+                }
+              </ol>
+            }
+          </section>
+        }
+      </article>
+    }
+  }
+  @if (notice()) {
+    <div class="alert alert-success" role="status">{{ notice() }}</div>
+  }
+  @if (actionError()) {
+    <div class="alert alert-danger" role="alert">{{ actionError() }}</div>
+  }
+  <h3>Erinnerung hinzufügen</h3>
+  <form
+    [formGroup]="form"
+    #formDirective="ngForm"
+    (ngSubmit)="create(formDirective)"
+    class="row g-3"
+  >
+    <div class="col-12 col-md-6">
+      <label class="form-label" for="reminder-title">Titel der Erinnerung</label
+      ><input
+        id="reminder-title"
+        class="form-control"
+        [class.is-invalid]="form.controls.title.invalid && form.controls.title.touched"
+        [attr.aria-invalid]="form.controls.title.invalid && form.controls.title.touched"
+        [attr.aria-describedby]="
+          form.controls.title.invalid && form.controls.title.touched ? 'reminder-title-error' : null
+        "
+        formControlName="title"
+        maxlength="255"
+        [readonly]="creating()"
+      />
+      @if (form.controls.title.invalid && form.controls.title.touched) {
+        <div class="invalid-feedback" id="reminder-title-error">
+          {{ fieldError(form.controls.title) }}
+        </div>
+      }
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="form-label" for="reminder-dueDate">Fällig am</label
+      ><input
+        id="reminder-dueDate"
+        class="form-control"
+        [class.is-invalid]="form.controls.dueDate.invalid && form.controls.dueDate.touched"
+        [attr.aria-invalid]="form.controls.dueDate.invalid && form.controls.dueDate.touched"
+        [attr.aria-describedby]="
+          form.controls.dueDate.invalid && form.controls.dueDate.touched
+            ? 'reminder-dueDate-error'
+            : null
+        "
+        type="date"
+        formControlName="dueDate"
+        [readonly]="creating()"
+      />
+      @if (form.controls.dueDate.invalid && form.controls.dueDate.touched) {
+        <div class="invalid-feedback" id="reminder-dueDate-error">
+          {{ fieldError(form.controls.dueDate) }}
+        </div>
+      }
+    </div>
+    <div class="col-12">
+      <label class="form-label" for="reminder-description"
+        >Beschreibung der Erinnerung (optional)</label
+      ><textarea
+        id="reminder-description"
+        class="form-control"
+        [class.is-invalid]="form.controls.description.invalid && form.controls.description.touched"
+        [attr.aria-invalid]="form.controls.description.invalid && form.controls.description.touched"
+        [attr.aria-describedby]="
+          form.controls.description.invalid && form.controls.description.touched
+            ? 'reminder-description-error'
+            : null
+        "
+        formControlName="description"
+        rows="3"
+        [readonly]="creating()"
+      ></textarea>
+      @if (form.controls.description.invalid && form.controls.description.touched) {
+        <div class="invalid-feedback" id="reminder-description-error">
+          {{ fieldError(form.controls.description) }}
+        </div>
+      }
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2 col-12">
+      <button
+        class="btn btn-primary"
+        type="submit"
+        [disabled]="creating() || loading() || !!loadError()"
+      >
+        {{ creating() ? 'Wird angelegt …' : 'Erinnerung speichern' }}
+      </button>
+    </div>
+  </form>
+</section>
