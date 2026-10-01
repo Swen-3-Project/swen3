@@ -24,6 +24,8 @@ Open **http://localhost/** for the website. The REST service listens at `http://
 
 IntelliJ IDEA with Docker support can start the stack using the shared **Start Sprint 2** run configuration.
 
+The website uses port 80 by default, as required by the course brief. If Windows IIS or another webserver already occupies that port, stop that server or set `UI_PORT=8080` in your local `.env` and open http://localhost:8080/. This does not change the nginx container's port.
+
 For Angular development, install Node 24 and run these commands in `frontend/` while the backend containers are running:
 
 ```sh
