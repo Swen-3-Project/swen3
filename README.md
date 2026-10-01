@@ -1,13 +1,14 @@
 # SWEN3 Document Management System
 
-Sprint 1 provides a Java REST service for document metadata and reminders. The course brief and rating matrix are at the repository root. Document content storage, OCR, search, messaging, and the user interface belong to later sprints.
+Sprint 1 provides a Java REST service for document metadata and reminders. Sprint 2 adds a German Angular website served by nginx. The course brief and rating matrix are at the repository root. Document content storage, OCR, search, and messaging belong to later sprints.
 
 ## Stack
 
 - Java 25, Spring Boot 4.1.1, Spring MVC, Spring Data JPA, Hibernate, and MapStruct
 - PostgreSQL 17 with versioned Flyway migrations
 - Maven for builds and JUnit, Mockito, and Spring MVC tests
-- Docker Compose for the REST service and database
+- Angular 21, Bootstrap, TypeScript, Reactive Forms, and Vitest
+- Docker Compose for nginx, the REST service, and the database
 
 ## Run locally
 
@@ -19,7 +20,18 @@ With Docker:
 docker compose up --build
 ```
 
-The REST service listens at `http://localhost:8081`. Check `http://localhost:8081/actuator/health` after startup. PostgreSQL data is stored in the `postgres_data` named volume, so `docker compose down` keeps it. Use `docker compose down --volumes` only when you intend to erase local data.
+Open **http://localhost/** for the website. The REST service listens at `http://localhost:8081`; nginx forwards website requests under `/api` to that service. Check `http://localhost:8081/actuator/health` after startup. PostgreSQL data is stored in the `postgres_data` named volume, so `docker compose down` keeps it. Use `docker compose down --volumes` only when you intend to erase local data.
+
+IntelliJ IDEA with Docker support can start the stack using the shared **Start Sprint 2** run configuration. The existing Start Sprint 1 configuration is preserved.
+
+For Angular development, install Node 24 and run these commands in `frontend/` while the backend containers are running:
+
+```sh
+npm ci
+npm start
+```
+
+The development website is http://localhost:4200/ and proxies `/api` to port 8081. `npm test` runs the frontend tests; `npm run build` creates the production website.
 
 With a local Java and PostgreSQL installation, create a `paperless` database and set `DB_URL`, `DB_USER`, and `DB_PASSWORD`, then run:
 
