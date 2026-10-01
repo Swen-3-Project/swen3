@@ -79,7 +79,7 @@
           />
           @if (form.controls.title.invalid && form.controls.title.touched) {
             <div class="invalid-feedback" id="document-edit-title-error">
-              Der Titel darf höchstens 255 Zeichen enthalten.
+              {{ fieldError(form.controls.title) }}
             </div>
           }
         </div>
@@ -103,6 +103,11 @@
             rows="4"
             [readonly]="saving()"
           ></textarea>
+          @if (form.controls.description.invalid && form.controls.description.touched) {
+            <div class="invalid-feedback" id="document-edit-description-error">
+              {{ fieldError(form.controls.description) }}
+            </div>
+          }
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2 col-12">
           <button class="btn btn-primary" type="submit" [disabled]="saving()">
@@ -130,6 +135,7 @@
       </dl>
     }
   </section>
+  <app-reminder-panel [documentId]="doc.id" />
   <div class="row g-3">
     <div class="col-12 col-md-6">
       <section class="card card-body shadow-sm mb-4">

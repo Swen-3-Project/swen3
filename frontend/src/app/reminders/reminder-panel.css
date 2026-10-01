@@ -1,0 +1,7 @@
+h3 {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.reminder p.text-body-secondary {
+  font-size: 13px;
+}
