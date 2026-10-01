@@ -27,5 +27,13 @@ services:
       db:
         condition: service_healthy
 
+  ui:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      rest:
+        condition: service_started
+
 volumes:
   postgres_data:

@@ -1,0 +1,21 @@
+.metric {
+  gap: 8px;
+}
+.metric > strong {
+  font-size: 36px;
+  line-height: 1.4;
+  letter-spacing: -1px;
+}
+.metric a,
+.metric > .text-body-secondary:last-child {
+  font-size: 13px;
+}
+.status-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.status-count strong {
+  font-size: 26px;
+}

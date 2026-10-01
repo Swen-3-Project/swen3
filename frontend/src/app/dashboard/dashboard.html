@@ -1,0 +1,95 @@
+<section
+  class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4"
+>
+  <div>
+    <h1>Übersicht</h1>
+    <p class="text-body-secondary">Ihre Dokumente auf einen Blick.</p>
+  </div>
+  <a class="btn btn-primary" routerLink="/documents/new">Dokument anlegen</a>
+</section>
+@if (loading()) {
+  <div class="d-flex align-items-center gap-2 py-3" role="status">
+    <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span
+    ><span>Übersicht wird geladen …</span>
+  </div>
+} @else if (error()) {
+  <div class="alert alert-danger" role="alert">
+    <p>{{ error() }}</p>
+    <button class="btn btn-outline-primary" (click)="load()">Erneut versuchen</button>
+  </div>
+} @else {
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-4">
+      <section class="card card-body h-100 shadow-sm metric">
+        <span class="text-body-secondary">Dokumente gesamt</span
+        ><strong data-testid="document-count">{{ documents().length }}</strong
+        ><a routerLink="/documents">Alle Dokumente ansehen</a>
+      </section>
+    </div>
+    <div class="col-12 col-lg-4">
+      <section class="card card-body h-100 shadow-sm metric">
+        <span class="text-body-secondary">Erfasste Dateigröße</span
+        ><strong>{{ totalSize() | fileSize }}</strong
+        ><span class="text-body-secondary">Summe der Dokumentmetadaten</span>
+      </section>
+    </div>
+    <div class="col-12 col-lg-4">
+      <section class="card card-body h-100 shadow-sm metric">
+        <span class="text-body-secondary">Bearbeitungsstatus</span>
+        @for (item of statusCounts(); track item.status) {
+          <div class="status-count">
+            <span>{{ item.status | statusLabel }}</span
+            ><strong>{{ item.count }}</strong>
+          </div>
+        }
+        @if (!documents().length) {
+          <span class="text-body-secondary">Noch keine Dokumente</span>
+        }
+      </section>
+    </div>
+  </div>
+  <section class="card card-body shadow-sm mb-4">
+    <div
+      class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4"
+    >
+      <h2>Zuletzt angelegt</h2>
+      <a class="btn btn-outline-primary" routerLink="/documents">Alle ansehen</a>
+    </div>
+    @if (!recent().length) {
+      <div class="text-center text-body-secondary py-4">
+        <h2>Hier beginnt Ihre Dokumentablage</h2>
+        <p>Legen Sie Ihr erstes Dokument an und ergänzen Sie Erinnerungen.</p>
+        <a class="btn btn-primary" routerLink="/documents/new">Erstes Dokument anlegen</a>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table align-middle mb-0" aria-label="Zuletzt angelegte Dokumente">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Dateiname</th>
+              <th scope="col">Status</th>
+              <th scope="col">Angelegt am</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (document of recent(); track document.id) {
+              <tr>
+                <td>
+                  <a class="filename" [routerLink]="['/documents', document.id]">{{
+                    document.filename
+                  }}</a>
+                </td>
+                <td>
+                  <span class="badge rounded-pill text-bg-primary">{{
+                    document.status | statusLabel
+                  }}</span>
+                </td>
+                <td>{{ document.createdAt | date: 'dd.MM.yyyy, HH:mm' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+}
