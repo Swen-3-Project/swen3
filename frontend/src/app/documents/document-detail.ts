@@ -11,10 +11,12 @@ import { apiErrorMessage } from '../core/api-error';
 import { FileSize } from '../shared/file-size';
 import { StatusLabel } from '../shared/status-label';
 import { DeleteDocumentDialog } from './delete-document-dialog';
+import { ReminderPanel } from '../reminders/reminder-panel';
+import { applyServerErrors, fieldError } from '../shared/form-validation';
 
 @Component({
   selector: 'app-document-detail',
-  imports: [DatePipe, ReactiveFormsModule, RouterLink, FileSize, StatusLabel],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink, FileSize, StatusLabel, ReminderPanel],
   templateUrl: './document-detail.html',
   styleUrl: './document-detail.css',
 })
@@ -34,6 +36,7 @@ export class DocumentDetail {
   readonly editing = signal(false);
   readonly saving = signal(false);
   readonly deleting = signal(false);
+  readonly fieldError = fieldError;
   readonly form = inject(FormBuilder).nonNullable.group({
     title: ['', Validators.maxLength(255)],
     description: [''],
@@ -106,7 +109,9 @@ export class DocumentDetail {
         },
         error: (error) => {
           this.saving.set(false);
+          if (this.document()?.id !== document.id) return;
           this.actionError.set(apiErrorMessage(error));
+          applyServerErrors(this.form, error);
         },
       });
   }

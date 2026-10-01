@@ -16,8 +16,8 @@
   }
   <form [formGroup]="form" (ngSubmit)="save()" class="row g-3">
     <div class="col-12 col-md-6">
-      <label class="form-label" for="document-create-filename">Dateiname</label
-      ><input
+      <label class="form-label" for="document-create-filename">Dateiname</label>
+      <input
         id="document-create-filename"
         class="form-control"
         [class.is-invalid]="form.controls.filename.invalid && form.controls.filename.touched"
@@ -34,13 +34,13 @@
       />
       @if (form.controls.filename.invalid && form.controls.filename.touched) {
         <div class="invalid-feedback" id="document-create-filename-error">
-          Bitte einen Dateinamen mit höchstens 255 Zeichen angeben.
+          {{ fieldError(form.controls.filename) }}
         </div>
       }
     </div>
     <div class="col-12 col-md-6">
-      <label class="form-label" for="document-create-mimeType">MIME-Typ</label
-      ><input
+      <label class="form-label" for="document-create-mimeType">MIME-Typ</label>
+      <input
         id="document-create-mimeType"
         class="form-control"
         [class.is-invalid]="form.controls.mimeType.invalid && form.controls.mimeType.touched"
@@ -56,13 +56,13 @@
       />
       @if (form.controls.mimeType.invalid && form.controls.mimeType.touched) {
         <div class="invalid-feedback" id="document-create-mimeType-error">
-          Bitte einen MIME-Typ mit höchstens 127 Zeichen angeben.
+          {{ fieldError(form.controls.mimeType) }}
         </div>
       }
     </div>
     <div class="col-12 col-md-6">
-      <label class="form-label" for="document-create-fileSize">Dateigröße in Bytes</label
-      ><input
+      <label class="form-label" for="document-create-fileSize">Dateigröße in Bytes</label>
+      <input
         id="document-create-fileSize"
         class="form-control"
         [class.is-invalid]="form.controls.fileSize.invalid && form.controls.fileSize.touched"
@@ -80,13 +80,13 @@
       />
       @if (form.controls.fileSize.invalid && form.controls.fileSize.touched) {
         <div class="invalid-feedback" id="document-create-fileSize-error">
-          Bitte eine ganze Zahl ab 0 angeben.
+          {{ fieldError(form.controls.fileSize) }}
         </div>
       }
     </div>
     <div class="col-12 col-md-6">
-      <label class="form-label" for="document-create-title">Titel (optional)</label
-      ><input
+      <label class="form-label" for="document-create-title">Titel (optional)</label>
+      <input
         id="document-create-title"
         class="form-control"
         [class.is-invalid]="form.controls.title.invalid && form.controls.title.touched"
@@ -102,13 +102,13 @@
       />
       @if (form.controls.title.invalid && form.controls.title.touched) {
         <div class="invalid-feedback" id="document-create-title-error">
-          Der Titel darf höchstens 255 Zeichen enthalten.
+          {{ fieldError(form.controls.title) }}
         </div>
       }
     </div>
     <div class="col-12">
-      <label class="form-label" for="document-create-description">Beschreibung (optional)</label
-      ><textarea
+      <label class="form-label" for="document-create-description">Beschreibung (optional)</label>
+      <textarea
         id="document-create-description"
         class="form-control"
         [class.is-invalid]="form.controls.description.invalid && form.controls.description.touched"
@@ -122,11 +122,17 @@
         rows="4"
         [readonly]="saving()"
       ></textarea>
+      @if (form.controls.description.invalid && form.controls.description.touched) {
+        <div class="invalid-feedback" id="document-create-description-error">
+          {{ fieldError(form.controls.description) }}
+        </div>
+      }
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2 col-12">
       <button class="btn btn-primary" type="submit" [disabled]="saving()">
-        {{ saving() ? 'Wird angelegt …' : 'Dokument speichern' }}</button
-      ><a class="btn btn-outline-primary" routerLink="/documents">Abbrechen</a>
+        {{ saving() ? 'Wird angelegt …' : 'Dokument speichern' }}
+      </button>
+      <a class="btn btn-outline-primary" routerLink="/documents">Abbrechen</a>
     </div>
   </form>
 </section>
