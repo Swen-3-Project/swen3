@@ -16,3 +16,5 @@ npm run e2e
 ```
 
 The end-to-end tests require the complete Docker Compose stack at http://localhost/. Install Chromium once with `npx playwright install chromium`.
+
+For the local port 8080 workaround, set `PAPERLESS_URL=http://localhost:8080` before running the browser tests. In PowerShell use `$env:PAPERLESS_URL = 'http://localhost:8080'`.

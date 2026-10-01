@@ -24,6 +24,8 @@ Open **http://localhost/** for the website. The REST service listens at `http://
 
 IntelliJ IDEA with Docker support can start the stack using the shared **Start Sprint 2** run configuration. The existing Start Sprint 1 configuration is preserved.
 
+The website uses port 80 by default, as required by the course brief. If Windows IIS or another webserver already occupies that port, stop that server or set `UI_PORT=8080` in your local `.env` and open http://localhost:8080/. This does not change the nginx container's port.
+
 For Angular development, install Node 24 and run these commands in `frontend/` while the backend containers are running:
 
 ```sh
@@ -80,3 +82,5 @@ Completing a reminder twice returns the completed reminder without writing a dup
 ## Team workflow
 
 `main` contains the accepted Sprint 1 release. `dev` is the integration branch, `feature/document-crud` and `feature/reminders` retain the individual feature commits, and `release/sprint-1` records the tested release. The feature branches were merged through pull requests #52 and #53, followed by release pull request #54 into `main`. Sprint 1 issues were closed by that release merge. Future work should follow the same branch, review, CI, and release sequence.
+
+Sprint 2 is prepared locally on `feature/frontend-dashboard` (your foundation/dashboard), `feature/document-ui` (Lisa), and `feature/reminder-ui` (@if24b067). Their commits are combined in local `dev` and `release/sprint-2`. Nothing from Sprint 2 has been pushed; GitHub issues remain open for review and later acceptance.
