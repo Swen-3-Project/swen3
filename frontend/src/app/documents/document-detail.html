@@ -1,0 +1,164 @@
+<a class="btn btn-outline-primary" routerLink="/documents">← Zur Dokumentliste</a>
+@if (loading()) {
+  <div class="d-flex align-items-center gap-2 py-3" role="status">
+    <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span
+    ><span>Dokument wird geladen …</span>
+  </div>
+} @else if (loadError()) {
+  <section class="alert alert-danger" role="alert">
+    <h1>Dokument nicht verfügbar</h1>
+    <p>{{ loadError() }}</p>
+    <button class="btn btn-outline-primary" (click)="retry()">Erneut versuchen</button>
+  </section>
+} @else if (document(); as doc) {
+  <section
+    class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4 detail-heading"
+  >
+    <div>
+      <h1 class="filename">{{ doc.filename }}</h1>
+      <p class="text-body-secondary">Dokumentdetails und Erinnerungen</p>
+    </div>
+    <span class="badge rounded-pill text-bg-primary">{{ doc.status | statusLabel }}</span>
+  </section>
+  @if (notice()) {
+    <div class="alert alert-success" role="status">{{ notice() }}</div>
+  }
+  @if (actionError()) {
+    <div class="alert alert-danger" role="alert">{{ actionError() }}</div>
+  }
+  <section class="card card-body shadow-sm mb-4">
+    <div
+      class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4"
+    >
+      <h2>Metadaten</h2>
+      @if (!editing()) {
+        <button class="btn btn-outline-primary" (click)="startEdit()" [disabled]="deleting()">
+          Metadaten bearbeiten
+        </button>
+      }
+    </div>
+    <dl>
+      <div>
+        <dt>Dateiname</dt>
+        <dd>{{ doc.filename }}</dd>
+      </div>
+      <div>
+        <dt>MIME-Typ</dt>
+        <dd>{{ doc.mimeType }}</dd>
+      </div>
+      <div>
+        <dt>Dateigröße</dt>
+        <dd>{{ doc.fileSize | fileSize }} ({{ doc.fileSize }} Bytes)</dd>
+      </div>
+      <div>
+        <dt>Angelegt am</dt>
+        <dd>{{ doc.createdAt | date: 'dd.MM.yyyy, HH:mm' }}</dd>
+      </div>
+      <div class="full-width">
+        <dt>Dokument-ID</dt>
+        <dd class="document-id">{{ doc.id }}</dd>
+      </div>
+    </dl>
+    @if (editing()) {
+      <form [formGroup]="form" (ngSubmit)="save()" class="row g-3">
+        <div class="col-12">
+          <label class="form-label" for="document-edit-title">Titel (optional)</label
+          ><input
+            id="document-edit-title"
+            class="form-control"
+            [class.is-invalid]="form.controls.title.invalid && form.controls.title.touched"
+            [attr.aria-invalid]="form.controls.title.invalid && form.controls.title.touched"
+            [attr.aria-describedby]="
+              form.controls.title.invalid && form.controls.title.touched
+                ? 'document-edit-title-error'
+                : null
+            "
+            formControlName="title"
+            maxlength="255"
+            [readonly]="saving()"
+          />
+          @if (form.controls.title.invalid && form.controls.title.touched) {
+            <div class="invalid-feedback" id="document-edit-title-error">
+              {{ fieldError(form.controls.title) }}
+            </div>
+          }
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="document-edit-description">Beschreibung (optional)</label
+          ><textarea
+            id="document-edit-description"
+            class="form-control"
+            [class.is-invalid]="
+              form.controls.description.invalid && form.controls.description.touched
+            "
+            [attr.aria-invalid]="
+              form.controls.description.invalid && form.controls.description.touched
+            "
+            [attr.aria-describedby]="
+              form.controls.description.invalid && form.controls.description.touched
+                ? 'document-edit-description-error'
+                : null
+            "
+            formControlName="description"
+            rows="4"
+            [readonly]="saving()"
+          ></textarea>
+          @if (form.controls.description.invalid && form.controls.description.touched) {
+            <div class="invalid-feedback" id="document-edit-description-error">
+              {{ fieldError(form.controls.description) }}
+            </div>
+          }
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2 col-12">
+          <button class="btn btn-primary" type="submit" [disabled]="saving()">
+            {{ saving() ? 'Wird gespeichert …' : 'Änderungen speichern' }}</button
+          ><button
+            class="btn btn-outline-primary"
+            type="button"
+            (click)="cancelEdit()"
+            [disabled]="saving()"
+          >
+            Abbrechen
+          </button>
+        </div>
+      </form>
+    } @else {
+      <dl>
+        <div class="full-width">
+          <dt>Titel</dt>
+          <dd>{{ doc.title || 'Kein Titel' }}</dd>
+        </div>
+        <div class="full-width">
+          <dt>Beschreibung</dt>
+          <dd class="preserve-text">{{ doc.description || 'Keine Beschreibung' }}</dd>
+        </div>
+      </dl>
+    }
+  </section>
+  <app-reminder-panel [documentId]="doc.id" />
+  <div class="row g-3">
+    <div class="col-12 col-md-6">
+      <section class="card card-body shadow-sm mb-4">
+        <h2>OCR-Text</h2>
+        <p class="text-body-secondary">Noch nicht verfügbar.</p>
+      </section>
+    </div>
+    <div class="col-12 col-md-6">
+      <section class="card card-body shadow-sm mb-4">
+        <h2>Zusammenfassung</h2>
+        <p class="text-body-secondary">Noch nicht verfügbar.</p>
+      </section>
+    </div>
+  </div>
+  <section class="card card-body shadow-sm mb-4">
+    <h2>Dokument löschen</h2>
+    <p class="text-body-secondary">Dabei werden auch alle zugehörigen Erinnerungen entfernt.</p>
+    <button
+      class="btn btn-outline-danger"
+      (click)="confirmDelete()"
+      [disabled]="saving() || deleting()"
+    >
+      {{ deleting() ? 'Wird gelöscht …' : 'Dokument löschen' }}
+    </button>
+  </section>
+}

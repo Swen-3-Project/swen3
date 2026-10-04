@@ -1,0 +1,138 @@
+<section
+  class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4"
+>
+  <div>
+    <h1>Dokument anlegen</h1>
+    <p class="text-body-secondary">Erfassen Sie die Angaben zu Ihrem Dokument.</p>
+  </div>
+  <a class="btn btn-outline-primary" routerLink="/documents">Zur Dokumentliste</a>
+</section>
+<div class="alert alert-info">
+  Hier werden Dokumentmetadaten erfasst. Eine Datei wird dabei noch nicht hochgeladen.
+</div>
+<section class="card card-body shadow-sm mb-4">
+  @if (error()) {
+    <div class="alert alert-danger" role="alert">{{ error() }}</div>
+  }
+  <form [formGroup]="form" (ngSubmit)="save()" class="row g-3">
+    <div class="col-12 col-md-6">
+      <label class="form-label" for="document-create-filename">Dateiname</label>
+      <input
+        id="document-create-filename"
+        class="form-control"
+        [class.is-invalid]="form.controls.filename.invalid && form.controls.filename.touched"
+        [attr.aria-invalid]="form.controls.filename.invalid && form.controls.filename.touched"
+        [attr.aria-describedby]="
+          form.controls.filename.invalid && form.controls.filename.touched
+            ? 'document-create-filename-error'
+            : null
+        "
+        formControlName="filename"
+        maxlength="255"
+        [readonly]="saving()"
+        placeholder="vertrag.pdf"
+      />
+      @if (form.controls.filename.invalid && form.controls.filename.touched) {
+        <div class="invalid-feedback" id="document-create-filename-error">
+          {{ fieldError(form.controls.filename) }}
+        </div>
+      }
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="form-label" for="document-create-mimeType">MIME-Typ</label>
+      <input
+        id="document-create-mimeType"
+        class="form-control"
+        [class.is-invalid]="form.controls.mimeType.invalid && form.controls.mimeType.touched"
+        [attr.aria-invalid]="form.controls.mimeType.invalid && form.controls.mimeType.touched"
+        [attr.aria-describedby]="
+          form.controls.mimeType.invalid && form.controls.mimeType.touched
+            ? 'document-create-mimeType-error'
+            : null
+        "
+        formControlName="mimeType"
+        maxlength="127"
+        [readonly]="saving()"
+      />
+      @if (form.controls.mimeType.invalid && form.controls.mimeType.touched) {
+        <div class="invalid-feedback" id="document-create-mimeType-error">
+          {{ fieldError(form.controls.mimeType) }}
+        </div>
+      }
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="form-label" for="document-create-fileSize">Dateigröße in Bytes</label>
+      <input
+        id="document-create-fileSize"
+        class="form-control"
+        [class.is-invalid]="form.controls.fileSize.invalid && form.controls.fileSize.touched"
+        [attr.aria-invalid]="form.controls.fileSize.invalid && form.controls.fileSize.touched"
+        [attr.aria-describedby]="
+          form.controls.fileSize.invalid && form.controls.fileSize.touched
+            ? 'document-create-fileSize-error'
+            : null
+        "
+        formControlName="fileSize"
+        type="number"
+        min="0"
+        step="1"
+        [readonly]="saving()"
+      />
+      @if (form.controls.fileSize.invalid && form.controls.fileSize.touched) {
+        <div class="invalid-feedback" id="document-create-fileSize-error">
+          {{ fieldError(form.controls.fileSize) }}
+        </div>
+      }
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="form-label" for="document-create-title">Titel (optional)</label>
+      <input
+        id="document-create-title"
+        class="form-control"
+        [class.is-invalid]="form.controls.title.invalid && form.controls.title.touched"
+        [attr.aria-invalid]="form.controls.title.invalid && form.controls.title.touched"
+        [attr.aria-describedby]="
+          form.controls.title.invalid && form.controls.title.touched
+            ? 'document-create-title-error'
+            : null
+        "
+        formControlName="title"
+        maxlength="255"
+        [readonly]="saving()"
+      />
+      @if (form.controls.title.invalid && form.controls.title.touched) {
+        <div class="invalid-feedback" id="document-create-title-error">
+          {{ fieldError(form.controls.title) }}
+        </div>
+      }
+    </div>
+    <div class="col-12">
+      <label class="form-label" for="document-create-description">Beschreibung (optional)</label>
+      <textarea
+        id="document-create-description"
+        class="form-control"
+        [class.is-invalid]="form.controls.description.invalid && form.controls.description.touched"
+        [attr.aria-invalid]="form.controls.description.invalid && form.controls.description.touched"
+        [attr.aria-describedby]="
+          form.controls.description.invalid && form.controls.description.touched
+            ? 'document-create-description-error'
+            : null
+        "
+        formControlName="description"
+        rows="4"
+        [readonly]="saving()"
+      ></textarea>
+      @if (form.controls.description.invalid && form.controls.description.touched) {
+        <div class="invalid-feedback" id="document-create-description-error">
+          {{ fieldError(form.controls.description) }}
+        </div>
+      }
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2 col-12">
+      <button class="btn btn-primary" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Wird angelegt …' : 'Dokument speichern' }}
+      </button>
+      <a class="btn btn-outline-primary" routerLink="/documents">Abbrechen</a>
+    </div>
+  </form>
+</section>
