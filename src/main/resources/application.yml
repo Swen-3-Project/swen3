@@ -21,6 +21,13 @@ spring:
     connection-timeout: 2s
     publisher-confirm-type: correlated
     publisher-returns: true
+  servlet:
+    multipart:
+      max-file-size: ${UPLOAD_MAX_FILE_SIZE:20MB}
+      max-request-size: ${UPLOAD_MAX_REQUEST_SIZE:21MB}
+
+storage:
+  directory: ${UPLOAD_DIRECTORY:./output/uploads}
 
 jobs:
   poll-ms: ${JOB_POLL_MS:3000}

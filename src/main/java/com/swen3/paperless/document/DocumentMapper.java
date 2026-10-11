@@ -12,6 +12,7 @@ public interface DocumentMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "storageKey", ignore = true)
     DocumentEntity toEntity(CreateDocumentRequest request);
 
     DocumentResponse toResponse(DocumentEntity entity);
@@ -22,5 +23,6 @@ public interface DocumentMapper {
     @Mapping(target = "fileSize", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "storageKey", ignore = true)
     void updateMetadata(UpdateDocumentRequest request, @MappingTarget DocumentEntity entity);
 }

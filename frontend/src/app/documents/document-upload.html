@@ -1,0 +1,39 @@
+<section class="mb-4">
+  <a class="btn btn-link ps-0" routerLink="/documents">← Alle Dokumente</a>
+  <h1>PDF hochladen</h1>
+  <p class="text-body-secondary">Speichern Sie eine PDF-Datei mit optionalem Titel und Beschreibung.</p>
+</section>
+<form class="card card-body shadow-sm" [formGroup]="form" (ngSubmit)="save()">
+  @if (error()) {
+    <div class="alert alert-danger" role="alert">{{ error() }}</div>
+  }
+  <div class="mb-3">
+    <label class="form-label" for="pdf-file">PDF-Datei</label>
+    <input class="form-control" id="pdf-file" type="file" accept=".pdf,application/pdf"
+      [disabled]="saving()" (change)="selectFile($event)"
+      [class.is-invalid]="fileError()" [attr.aria-invalid]="!!fileError()"
+      aria-describedby="file-help file-error" />
+    <div id="file-help" class="form-text">PDF-Datei, höchstens 20 MiB.</div>
+    @if (fileError()) { <div id="file-error" class="invalid-feedback d-block" role="alert">{{ fileError() }}</div> }
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="upload-title">Titel (optional)</label>
+    <input class="form-control" id="upload-title" formControlName="title" maxlength="255"
+      [readonly]="saving()" [class.is-invalid]="fieldError(form.controls.title)"
+      [attr.aria-invalid]="!!fieldError(form.controls.title)" aria-describedby="title-error" />
+    @if (fieldError(form.controls.title)) {
+      <div id="title-error" class="invalid-feedback">{{ fieldError(form.controls.title) }}</div>
+    }
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="upload-description">Beschreibung (optional)</label>
+    <textarea class="form-control" id="upload-description" formControlName="description" rows="4" [readonly]="saving()"></textarea>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="submit" [disabled]="saving()">
+      @if (saving()) { <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> }
+      {{ saving() ? 'PDF wird hochgeladen …' : 'PDF hochladen' }}
+    </button>
+    <a class="btn btn-outline-secondary" routerLink="/documents">Abbrechen</a>
+  </div>
+</form>

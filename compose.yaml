@@ -40,6 +40,9 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: ${RABBITMQ_USER:-paperless}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-paperless_dev}
+      UPLOAD_DIRECTORY: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
     ports:
       - "8081:8081"
     depends_on:
@@ -57,3 +60,4 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
+  uploads_data:
