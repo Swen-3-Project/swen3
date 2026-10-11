@@ -14,6 +14,21 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    username: ${RABBITMQ_USER:paperless}
+    password: ${RABBITMQ_PASSWORD:paperless_dev}
+    connection-timeout: 2s
+    publisher-confirm-type: correlated
+    publisher-returns: true
+
+jobs:
+  poll-ms: ${JOB_POLL_MS:3000}
+
+logging:
+  structured:
+    format:
+      console: logstash
 
 management:
   endpoints:

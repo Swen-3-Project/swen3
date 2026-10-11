@@ -1,4 +1,20 @@
 services:
+  rabbitmq:
+    image: rabbitmq:4.3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-paperless}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-paperless_dev}
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+
   db:
     image: postgres:17-alpine
     environment:
@@ -21,6 +37,9 @@ services:
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-paperless}
       DB_USER: ${POSTGRES_USER:-paperless}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-paperless_dev}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-paperless}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-paperless_dev}
     ports:
       - "8081:8081"
     depends_on:
@@ -37,3 +56,4 @@ services:
 
 volumes:
   postgres_data:
+  rabbitmq_data:
