@@ -5,7 +5,10 @@
     <h1>Übersicht</h1>
     <p class="text-body-secondary">Ihre Dokumente auf einen Blick.</p>
   </div>
-  <a class="btn btn-primary" routerLink="/documents/new">Dokument anlegen</a>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-primary" routerLink="/documents/upload">PDF hochladen</a>
+    <a class="btn btn-outline-primary" routerLink="/documents/new">Dokument anlegen</a>
+  </div>
 </section>
 @if (loading()) {
   <div class="d-flex align-items-center gap-2 py-3" role="status">
