@@ -46,7 +46,13 @@ public class DocumentUploadService {
         }
         UUID id = UUID.randomUUID();
         try (var scope = MDC.putCloseable("documentId", id.toString())) {
-            FileStorage.StoredFile stored = storage.store(id, file);
+            FileStorage.StoredFile stored;
+            try {
+                stored = storage.store(id, file);
+            } catch (RuntimeException exception) {
+                log.warn("upload_storage_failed errorType={}", exception.getClass().getSimpleName());
+                throw exception;
+            }
             String finalFilename = filename;
             try {
                 DocumentResponse response = transaction.execute(status -> {

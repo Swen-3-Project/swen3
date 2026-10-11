@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import com.swen3.paperless.common.ResourceNotFoundException;
 import com.swen3.paperless.jobs.JobKind;
 import com.swen3.paperless.jobs.OutboxService;
 import com.swen3.paperless.document.dto.CreateDocumentRequest;

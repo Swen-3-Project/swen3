@@ -38,6 +38,9 @@ logging:
       console: logstash
 
 management:
+  health:
+    rabbit:
+      enabled: false
   endpoints:
     web:
       exposure:

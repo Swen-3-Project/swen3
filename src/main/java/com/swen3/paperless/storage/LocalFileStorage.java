@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.Arrays;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.swen3.paperless.common.UploadTooLargeException;
 import com.swen3.paperless.common.UploadValidationException;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Component
 public class LocalFileStorage implements FileStorage {
+    private static final Logger log = LoggerFactory.getLogger(LocalFileStorage.class);
     private final Path root;
     private final long maxBytes;
 
@@ -53,7 +56,9 @@ public class LocalFileStorage implements FileStorage {
         } finally {
             if (temporary != null) {
                 try { Files.deleteIfExists(temporary); }
-                catch (IOException ignored) { /* The failed operation is reported to the caller. */ }
+                catch (IOException exception) {
+                    log.error("temporary_file_cleanup_failed errorType={}", exception.getClass().getSimpleName());
+                }
             }
         }
     }
