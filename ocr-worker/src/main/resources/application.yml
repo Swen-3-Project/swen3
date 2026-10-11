@@ -1,0 +1,25 @@
+server:
+  port: 8082
+spring:
+  application:
+    name: paperless-ocr-worker
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    username: ${RABBITMQ_USER:paperless}
+    password: ${RABBITMQ_PASSWORD:paperless_dev}
+    connection-timeout: 2s
+    listener:
+      simple:
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+        prefetch: 10
+        missing-queues-fatal: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+logging:
+  structured:
+    format:
+      console: logstash
