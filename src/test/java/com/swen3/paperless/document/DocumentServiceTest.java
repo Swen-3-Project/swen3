@@ -30,7 +30,8 @@ class DocumentServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new DocumentService(repository, Mappers.getMapper(DocumentMapper.class));
+        service = new DocumentService(repository, Mappers.getMapper(DocumentMapper.class),
+                org.mockito.Mockito.mock(com.swen3.paperless.jobs.OutboxService.class));
     }
 
     @Test

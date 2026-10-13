@@ -38,6 +38,9 @@ public class DocumentEntity {
     @Column(columnDefinition = "text")
     private String description;
 
+    @Column(name = "storage_key", length = 255)
+    private String storageKey;
+
     public DocumentEntity() {
     }
 
@@ -57,4 +60,6 @@ public class DocumentEntity {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getStorageKey() { return storageKey; }
+    public void setStorageKey(String storageKey) { this.storageKey = storageKey; }
 }

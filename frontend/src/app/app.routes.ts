@@ -17,6 +17,11 @@ export const routes: Routes = [
     loadComponent: () => import('./documents/document-form').then((m) => m.DocumentForm),
   },
   {
+    path: 'documents/upload',
+    title: 'PDF hochladen · Paperless',
+    loadComponent: () => import('./documents/document-upload').then((m) => m.DocumentUpload),
+  },
+  {
     path: 'documents/:id',
     title: 'Dokumentdetails · Paperless',
     loadComponent: () => import('./documents/document-detail').then((m) => m.DocumentDetail),
