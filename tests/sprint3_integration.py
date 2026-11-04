@@ -98,20 +98,18 @@ def main():
         assert sql("SELECT count(*) FROM documents;") == before
         print("PASS: invalid, empty and oversized PDFs rejected without document creation")
 
+        before = sql("SELECT count(*) FROM documents;")
         compose("stop", "rabbitmq")
-        id = create()
-        assert sql(f"SELECT state FROM pending_jobs WHERE document_id='{id}' AND kind='OCR_REQUESTED';") == "PENDING"
-        compose("restart", "rest")
-        eventually(ready, "REST restarted without broker")
-        assert request(url + "/api/documents/" + id)[0] == 200
+        assert upload(url, pdf)[0] == 503
+        assert sql("SELECT count(*) FROM documents;") == before
         compose("start", "rabbitmq")
-        eventually(lambda: received(id), "durable pending job delivered after broker recovery")
-        print("PASS: broker outage accepted; job survived REST restart and delivered on recovery")
+        eventually(lambda: compose("exec", "-T", "rabbitmq", "rabbitmq-diagnostics", "-q", "ping", check=False), "broker recovery")
+        id = create()
+        eventually(lambda: received(id), "manual retry after broker recovery")
+        print("PASS: broker outage returns 503; a manual retry succeeds")
 
         compose("stop", "ocr-worker")
         id = create()
-        eventually(lambda: sql(f"SELECT state FROM pending_jobs WHERE document_id='{id}' AND kind='OCR_REQUESTED';") == "SENT",
-                   "broker confirmed job while worker stopped")
         compose("restart", "rabbitmq")
         eventually(lambda: compose("exec", "-T", "rabbitmq", "rabbitmq-diagnostics", "-q", "ping", check=False), "broker restart")
         compose("start", "ocr-worker")
@@ -130,13 +128,12 @@ def main():
         eventually(lambda: request(queue, headers=auth)[1]["messages"] > old_count, "malformed message dead-lettered")
         print("PASS: malformed message sent to dead-letter queue")
 
-        compose("stop", "rabbitmq")
         id = create()
+        compose("stop", "rabbitmq")
         assert request(url + "/api/documents/" + id, "DELETE")[0] == 204
         eventually(lambda: compose("exec", "-T", "rest", "test", "!", "-e", "/app/uploads/" + id + ".pdf", check=False), "file cleanup without broker")
-        assert sql(f"SELECT state FROM pending_jobs WHERE document_id='{id}' AND kind='OCR_REQUESTED';") == "CANCELLED"
         compose("start", "rabbitmq")
-        print("PASS: deletion cancels unsent OCR job and removes the stored file")
+        print("PASS: deletion removes the stored file directly")
     finally:
         compose("start", "rabbitmq", check=False)
         compose("start", "ocr-worker", check=False)

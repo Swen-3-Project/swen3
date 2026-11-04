@@ -1,7 +1,7 @@
 package com.swen3.paperless.messaging;
 
 import java.util.UUID;
-import com.swen3.paperless.jobs.*;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.amqp.core.*;
@@ -21,18 +21,17 @@ class OcrJobPublisherTest {
             data.getFuture().complete(new CorrelationData.Confirm(true, null));
             return null;
         }).when(template).send(anyString(), anyString(), any(Message.class), any(CorrelationData.class));
-        var job = new PendingJob(JobKind.OCR_REQUESTED, UUID.randomUUID(), UUID.randomUUID() + ".pdf");
+        var job = new OcrJob(1, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID() + ".pdf");
         var mapper = JsonMapper.builder().build();
         var publisher = new OcrJobPublisher(template, mapper);
-        publisher.handle(job);
-        assertEquals(JobKind.OCR_REQUESTED, publisher.kind());
+        publisher.publish(job);
         var message = ArgumentCaptor.forClass(Message.class);
         verify(template).send(eq(RabbitConfiguration.EXCHANGE), eq(RabbitConfiguration.ROUTING_KEY), message.capture(), any());
         OcrJob payload = mapper.readValue(message.getValue().getBody(), OcrJob.class);
         assertEquals(1, payload.schemaVersion());
-        assertEquals(job.getId(), payload.jobId());
-        assertEquals(job.getDocumentId(), payload.documentId());
-        assertEquals(job.getStorageKey(), payload.storageKey());
+        assertEquals(job.jobId(), payload.jobId());
+        assertEquals(job.documentId(), payload.documentId());
+        assertEquals(job.storageKey(), payload.storageKey());
         assertEquals(MessageDeliveryMode.PERSISTENT, message.getValue().getMessageProperties().getDeliveryMode());
         assertFalse(message.getValue().getMessageProperties().getHeaders().containsKey("__TypeId__"));
     }
@@ -48,7 +47,7 @@ class OcrJobPublisherTest {
                 return null;
             }).when(template).send(anyString(), anyString(), any(Message.class), any(CorrelationData.class));
             assertThrows(MessagingException.class, () -> new OcrJobPublisher(template, JsonMapper.builder().build())
-                    .handle(new PendingJob(JobKind.OCR_REQUESTED, UUID.randomUUID(), "file.pdf")));
+                    .publish(new OcrJob(1, UUID.randomUUID(), UUID.randomUUID(), "file.pdf")));
         }
     }
 

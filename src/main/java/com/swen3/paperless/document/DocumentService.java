@@ -4,8 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import com.swen3.paperless.jobs.JobKind;
-import com.swen3.paperless.jobs.OutboxService;
+import com.swen3.paperless.storage.FileStorage;
 import com.swen3.paperless.document.dto.CreateDocumentRequest;
 import com.swen3.paperless.document.dto.DocumentResponse;
 import com.swen3.paperless.document.dto.UpdateDocumentRequest;
@@ -16,21 +15,38 @@ import org.springframework.transaction.annotation.Transactional;
 public class DocumentService {
     private final DocumentRepository repository;
     private final DocumentMapper mapper;
-    private final OutboxService outbox;
+    private final FileStorage storage;
 
-    public DocumentService(DocumentRepository repository, DocumentMapper mapper, OutboxService outbox) {
+    public DocumentService(DocumentRepository repository, DocumentMapper mapper, FileStorage storage) {
         this.repository = repository;
         this.mapper = mapper;
-        this.outbox = outbox;
+        this.storage = storage;
     }
 
     @Transactional
     public DocumentResponse create(CreateDocumentRequest request) {
+        DocumentEntity document = newDocument(UUID.randomUUID(), request);
+        return mapper.toResponse(repository.save(document));
+    }
+
+    @Transactional
+    public DocumentResponse createUploaded(UUID id, CreateDocumentRequest request, String storageKey) {
+        DocumentEntity document = newDocument(id, request);
+        document.setStorageKey(storageKey);
+        return mapper.toResponse(repository.saveAndFlush(document));
+    }
+
+    @Transactional
+    public void removeFailedUpload(UUID id) {
+        repository.deleteById(id);
+    }
+
+    private DocumentEntity newDocument(UUID id, CreateDocumentRequest request) {
         DocumentEntity document = mapper.toEntity(request);
-        document.setId(UUID.randomUUID());
+        document.setId(id);
         document.setStatus(DocumentStatus.CREATED);
         document.setCreatedAt(Instant.now());
-        return mapper.toResponse(repository.save(document));
+        return document;
     }
 
     @Transactional(readOnly = true)
@@ -53,9 +69,8 @@ public class DocumentService {
     @Transactional
     public void delete(UUID id) {
         DocumentEntity document = requireEntity(id);
-        outbox.cancelPendingOcr(id);
         if (document.getStorageKey() != null) {
-            outbox.enqueue(JobKind.DELETE_FILE, id, document.getStorageKey());
+            storage.delete(document.getStorageKey());
         }
         repository.delete(document);
     }
