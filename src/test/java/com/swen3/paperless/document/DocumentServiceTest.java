@@ -31,7 +31,7 @@ class DocumentServiceTest {
     @BeforeEach
     void setUp() {
         service = new DocumentService(repository, Mappers.getMapper(DocumentMapper.class),
-                org.mockito.Mockito.mock(com.swen3.paperless.jobs.OutboxService.class));
+                org.mockito.Mockito.mock(com.swen3.paperless.storage.FileStorage.class));
     }
 
     @Test
@@ -47,6 +47,33 @@ class DocumentServiceTest {
         assertEquals("invoice.pdf", response.filename());
         assertEquals(123L, response.fileSize());
         assertEquals("Invoice", response.title());
+    }
+
+    @Test
+    void createsUploadedDocumentAndRemovesFailedUploads() {
+        UUID id = UUID.randomUUID();
+        when(repository.saveAndFlush(any(DocumentEntity.class))).thenAnswer(call -> call.getArgument(0));
+        var response = service.createUploaded(id, new CreateDocumentRequest("a.pdf", "application/pdf", 10L, null, null), id + ".pdf");
+        assertEquals(id, response.id());
+        var saved = org.mockito.ArgumentCaptor.forClass(DocumentEntity.class);
+        verify(repository).saveAndFlush(saved.capture());
+        assertEquals(id + ".pdf", saved.getValue().getStorageKey());
+        service.removeFailedUpload(id);
+        verify(repository).deleteById(id);
+    }
+
+    @Test
+    void deletesFileBeforeDeletingMetadata() {
+        UUID id = UUID.randomUUID();
+        var document = existingDocument(id);
+        document.setStorageKey(id + ".pdf");
+        when(repository.findById(id)).thenReturn(Optional.of(document));
+        var storage = org.mockito.Mockito.mock(com.swen3.paperless.storage.FileStorage.class);
+        var withStorage = new DocumentService(repository, Mappers.getMapper(DocumentMapper.class), storage);
+        withStorage.delete(id);
+        var order = org.mockito.Mockito.inOrder(storage, repository);
+        order.verify(storage).delete(id + ".pdf");
+        order.verify(repository).delete(document);
     }
 
     @Test

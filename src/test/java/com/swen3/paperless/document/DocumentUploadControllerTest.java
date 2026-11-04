@@ -45,6 +45,14 @@ class DocumentUploadControllerTest {
                 .andExpect(jsonPath("$.detail").value("The request could not be completed"));
     }
 
+    @Test void brokerFailureReturns503WithoutTechnicalDetails() throws Exception {
+        doThrow(new com.swen3.paperless.messaging.MessagingException(new IllegalStateException("secret")))
+                .when(service).upload(any(), any(), any());
+        mvc.perform(multipart("/api/documents/upload").file(pdf()))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.detail").value("Document processing is temporarily unavailable. Please try again later."));
+    }
+
     @Test void missingFileAndUnsupportedMediaAreClientErrors() throws Exception {
         mvc.perform(multipart("/api/documents/upload")).andExpect(status().isBadRequest());
         mvc.perform(post("/api/documents/upload").contentType("application/json").content("{}"))

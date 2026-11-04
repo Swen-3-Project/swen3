@@ -22,9 +22,7 @@ class LocalFileStorageTest {
         assertEquals(id + ".pdf", stored.key());
         assertEquals(bytes.length, stored.size());
         assertArrayEquals(bytes, Files.readAllBytes(directory.resolve(stored.key())));
-        var handler = new FileCleanupHandler(storage);
-        assertEquals(com.swen3.paperless.jobs.JobKind.DELETE_FILE, handler.kind());
-        handler.handle(new com.swen3.paperless.jobs.PendingJob(handler.kind(), id, stored.key()));
+        storage.delete(stored.key());
         storage.delete(stored.key());
         assertFalse(Files.exists(directory.resolve(stored.key())));
     }

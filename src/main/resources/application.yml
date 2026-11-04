@@ -29,9 +29,6 @@ spring:
 storage:
   directory: ${UPLOAD_DIRECTORY:./output/uploads}
 
-jobs:
-  poll-ms: ${JOB_POLL_MS:3000}
-
 logging:
   structured:
     format:
