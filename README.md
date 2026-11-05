@@ -35,7 +35,7 @@ Choose **PDF hochladen** on the website, or use the REST API:
 curl -F "file=@invoice.pdf" -F "title=Invoice" http://localhost:8081/api/documents/upload
 ```
 
-PDFs up to 20 MiB are stored in a Docker volume. Each upload saves a document in PostgreSQL and sends an OCR job directly to RabbitMQ. A failed send returns HTTP 503 and removes the failed upload. The worker logs receipt; text recognition is added later. Delivery is at least once, so a retry can produce another receipt log for the same job ID.
+PDFs up to 20 MiB are stored in RustFS through its S3 API. Each upload saves a document in PostgreSQL and sends an OCR job directly to RabbitMQ. A failed send returns HTTP 503 and removes the failed upload. The worker logs receipt; text recognition is added later. Delivery is at least once, so a retry can produce another receipt log for the same job ID.
 
 Deleting a document removes its file directly. The JSON creation endpoint still creates metadata records without a file.
 

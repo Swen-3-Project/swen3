@@ -2,6 +2,10 @@
 import argparse
 import base64
 import hashlib
+import hmac
+import datetime
+import urllib.parse
+import xml.etree.ElementTree as ET
 import json
 import os
 from pathlib import Path
@@ -49,6 +53,46 @@ def request(url, method="GET", body=None, headers=None):
         return response.status, json.loads(raw) if raw and "json" in response.headers.get("Content-Type", "") else raw
 
 
+_storage_credentials = None
+
+
+def storage_request(key="", method="GET", query=""):
+    global _storage_credentials
+    if _storage_credentials is None:
+        _storage_credentials = (
+            compose("exec", "-T", "rest", "printenv", "S3_ACCESS_KEY"),
+            compose("exec", "-T", "rest", "printenv", "S3_SECRET_KEY"),
+        )
+    access, secret = _storage_credentials
+    now = datetime.datetime.now(datetime.timezone.utc)
+    stamp, day = now.strftime("%Y%m%dT%H%M%SZ"), now.strftime("%Y%m%d")
+    host = "localhost:" + compose("port", "rustfs", "9000").rsplit(":", 1)[1]
+    path = "/documents" + ("/" + urllib.parse.quote(key) if key else "")
+    payload_hash = hashlib.sha256(b"").hexdigest()
+    signed = "host;x-amz-content-sha256;x-amz-date"
+    canonical_headers = f"host:{host}\nx-amz-content-sha256:{payload_hash}\nx-amz-date:{stamp}\n"
+    canonical = f"{method}\n{path}\n{query}\n{canonical_headers}\n{signed}\n{payload_hash}"
+    scope = day + "/us-east-1/s3/aws4_request"
+    to_sign = "AWS4-HMAC-SHA256\n" + stamp + "\n" + scope + "\n" + hashlib.sha256(canonical.encode()).hexdigest()
+
+    def sign(key_bytes, text):
+        return hmac.new(key_bytes, text.encode(), hashlib.sha256).digest()
+
+    signing = sign(sign(sign(sign(("AWS4" + secret).encode(), day), "us-east-1"), "s3"), "aws4_request")
+    signature = hmac.new(signing, to_sign.encode(), hashlib.sha256).hexdigest()
+    headers = {
+        "x-amz-date": stamp, "x-amz-content-sha256": payload_hash,
+        "Authorization": f"AWS4-HMAC-SHA256 Credential={access}/{scope}, SignedHeaders={signed}, Signature={signature}",
+    }
+    return request("http://" + host + path + ("?" + query if query else ""), method, headers=headers)
+
+
+def storage_count():
+    status, body = storage_request(query="list-type=2")
+    assert status == 200, f"RustFS listing returned {status}"
+    return len(ET.fromstring(body).findall("{*}Contents"))
+
+
 def upload(url, content, filename="hello.pdf"):
     boundary = "pdf-" + uuid.uuid4().hex
     body = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{filename}"\r\n'
@@ -64,8 +108,10 @@ def main():
     pdf = (ROOT / "tests/fixtures/hello.pdf").read_bytes()
     ids = []
 
-    def create(content=pdf):
+    def create(content=pdf, wait_for_broker=False):
         status, document = upload(url, content)
+        if wait_for_broker and status == 503:
+            return None
         assert status == 201, f"Upload returned {status}"
         id = str(uuid.UUID(document["id"]))
         ids.append(id)
@@ -75,8 +121,9 @@ def main():
         assert document["status"] == "CREATED"
         key = sql(f"SELECT storage_key FROM documents WHERE id='{id}';")
         assert key == id + ".pdf"
-        digest = compose("exec", "-T", "rest", "sha256sum", "/app/uploads/" + key).split()[0]
-        assert digest == hashlib.sha256(content).hexdigest()
+        stored_status, stored = storage_request(key)
+        assert stored_status == 200
+        assert stored == content
         return id
 
     def received(id):
@@ -99,12 +146,14 @@ def main():
         print("PASS: invalid, empty and oversized PDFs rejected without document creation")
 
         before = sql("SELECT count(*) FROM documents;")
+        files_before = storage_count()
         compose("stop", "rabbitmq")
         assert upload(url, pdf)[0] == 503
+        assert storage_count() == files_before
         assert sql("SELECT count(*) FROM documents;") == before
         compose("start", "rabbitmq")
         eventually(lambda: compose("exec", "-T", "rabbitmq", "rabbitmq-diagnostics", "-q", "ping", check=False), "broker recovery")
-        id = create()
+        id = eventually(lambda: create(wait_for_broker=True), "manual upload after broker recovery")
         eventually(lambda: received(id), "manual retry after broker recovery")
         print("PASS: broker outage returns 503; a manual retry succeeds")
 
@@ -129,9 +178,10 @@ def main():
         print("PASS: malformed message sent to dead-letter queue")
 
         id = create()
+        eventually(lambda: received(id), "last worker receipt")
         compose("stop", "rabbitmq")
         assert request(url + "/api/documents/" + id, "DELETE")[0] == 204
-        eventually(lambda: compose("exec", "-T", "rest", "test", "!", "-e", "/app/uploads/" + id + ".pdf", check=False), "file cleanup without broker")
+        eventually(lambda: storage_request(id + ".pdf", "HEAD")[0] == 404, "file cleanup without broker")
         compose("start", "rabbitmq")
         print("PASS: deletion removes the stored file directly")
     finally:
@@ -141,7 +191,7 @@ def main():
             try:
                 status, _ = request(url + "/api/documents/" + id, "DELETE")
                 if status in (204, 404):
-                    eventually(lambda: compose("exec", "-T", "rest", "test", "!", "-e", "/app/uploads/" + id + ".pdf", check=False), "test PDF cleanup", timeout=30)
+                    eventually(lambda: storage_request(id + ".pdf", "HEAD")[0] == 404, "test PDF cleanup", timeout=30)
             except (urllib.error.URLError, TimeoutError, AssertionError):
                 print("Cleanup could not finish for test document " + id)
 
