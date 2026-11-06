@@ -81,6 +81,10 @@ services:
   ocr-worker:
     build: ./ocr-worker
     environment:
+      S3_ENDPOINT: http://rustfs:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-paperless_storage}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-paperless_storage_dev}
+      S3_BUCKET: documents
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: ${RABBITMQ_USER:-paperless}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-paperless_dev}
