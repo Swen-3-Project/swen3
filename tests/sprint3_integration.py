@@ -36,7 +36,7 @@ def eventually(check, description, timeout=120):
             result = check()
             if result:
                 return result
-        except (urllib.error.URLError, TimeoutError, subprocess.CalledProcessError):
+        except (urllib.error.URLError, TimeoutError, ConnectionError, subprocess.CalledProcessError):
             pass
         time.sleep(1)
     raise AssertionError("Timed out: " + description)
