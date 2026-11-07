@@ -5,7 +5,7 @@ import com.swen3.paperless.common.UploadValidationException;
 import com.swen3.paperless.document.dto.CreateDocumentRequest;
 import com.swen3.paperless.document.dto.DocumentResponse;
 import com.swen3.paperless.messaging.OcrJob;
-import com.swen3.paperless.messaging.OcrJobPublisher;
+import com.swen3.paperless.messaging.JobPublisher;
 import com.swen3.paperless.storage.FileStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,9 +18,9 @@ public class DocumentUploadService {
     private static final Logger log = LoggerFactory.getLogger(DocumentUploadService.class);
     private final FileStorage storage;
     private final DocumentService documents;
-    private final OcrJobPublisher publisher;
+    private final JobPublisher publisher;
 
-    public DocumentUploadService(FileStorage storage, DocumentService documents, OcrJobPublisher publisher) {
+    public DocumentUploadService(FileStorage storage, DocumentService documents, JobPublisher publisher) {
         this.storage = storage;
         this.documents = documents;
         this.publisher = publisher;

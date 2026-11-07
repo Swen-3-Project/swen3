@@ -52,6 +52,7 @@ services:
   rest:
     build: .
     environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-paperless}
       DB_USER: ${POSTGRES_USER:-paperless}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-paperless_dev}

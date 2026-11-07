@@ -2,6 +2,7 @@ package com.swen3.paperless.document;
 
 import com.swen3.paperless.document.dto.CreateDocumentRequest;
 import com.swen3.paperless.document.dto.DocumentResponse;
+import com.swen3.paperless.document.dto.DocumentDetailResponse;
 import com.swen3.paperless.document.dto.UpdateDocumentRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -13,9 +14,12 @@ public interface DocumentMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "storageKey", ignore = true)
+    @Mapping(target = "ocrText", ignore = true)
     DocumentEntity toEntity(CreateDocumentRequest request);
 
     DocumentResponse toResponse(DocumentEntity entity);
+
+    DocumentDetailResponse toDetailResponse(DocumentEntity entity);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "filename", ignore = true)
@@ -24,5 +28,6 @@ public interface DocumentMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "storageKey", ignore = true)
+    @Mapping(target = "ocrText", ignore = true)
     void updateMetadata(UpdateDocumentRequest request, @MappingTarget DocumentEntity entity);
 }

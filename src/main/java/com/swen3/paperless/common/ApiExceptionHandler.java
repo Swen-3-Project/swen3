@@ -56,6 +56,13 @@ public class ApiExceptionHandler {
                 HttpStatus.SERVICE_UNAVAILABLE, "Document processing is temporarily unavailable. Please try again later."));
     }
 
+    @ExceptionHandler(com.swen3.paperless.search.SearchException.class)
+    public ResponseEntity<ProblemDetail> searchFailure(Exception exception) {
+        log.warn("search_failed");
+        return ResponseEntity.status(503).body(ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE, "Document search is temporarily unavailable"));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> unexpected(Exception exception) {
         if (exception instanceof ErrorResponse response && response.getStatusCode().is4xxClientError()) {

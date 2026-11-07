@@ -7,7 +7,7 @@ import com.swen3.paperless.document.dto.CreateDocumentRequest;
 import com.swen3.paperless.document.dto.DocumentResponse;
 import com.swen3.paperless.messaging.MessagingException;
 import com.swen3.paperless.messaging.OcrJob;
-import com.swen3.paperless.messaging.OcrJobPublisher;
+import com.swen3.paperless.messaging.JobPublisher;
 import com.swen3.paperless.storage.FileStorage;
 import com.swen3.paperless.storage.StorageException;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +21,7 @@ import static org.mockito.ArgumentMatchers.*;
 class DocumentUploadServiceTest {
     FileStorage storage = mock(FileStorage.class);
     DocumentService documents = mock(DocumentService.class);
-    OcrJobPublisher publisher = mock(OcrJobPublisher.class);
+    JobPublisher publisher = mock(JobPublisher.class);
     DocumentUploadService service = new DocumentUploadService(storage, documents, publisher);
 
     @BeforeEach void setUp() {
@@ -56,7 +56,7 @@ class DocumentUploadServiceTest {
         verifyNoInteractions(publisher);
         reset(documents, storage);
         when(storage.store(any(), any())).thenReturn(new FileStorage.StoredFile("key.pdf", 10));
-        doThrow(new MessagingException(new IllegalStateException())).when(publisher).publish(any());
+        doThrow(new MessagingException(new IllegalStateException())).when(publisher).publish(any(OcrJob.class));
         assertThrows(MessagingException.class, () -> service.upload(pdf("b.pdf"), null, null));
         verify(documents).removeFailedUpload(any());
         verify(storage).delete("key.pdf");
@@ -64,7 +64,7 @@ class DocumentUploadServiceTest {
 
     @Test void cleanupErrorsDoNotHideTheOriginalFailure() {
         var failure = new MessagingException(new IllegalStateException());
-        doThrow(failure).when(publisher).publish(any());
+        doThrow(failure).when(publisher).publish(any(OcrJob.class));
         doThrow(new IllegalStateException()).when(documents).removeFailedUpload(any());
         doThrow(new IllegalStateException()).when(storage).delete(any());
         assertSame(failure, assertThrows(MessagingException.class, () -> service.upload(pdf("a.pdf"), null, null)));

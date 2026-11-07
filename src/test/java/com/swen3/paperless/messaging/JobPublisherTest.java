@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 
-class OcrJobPublisherTest {
+class JobPublisherTest {
     @Test
     void publishesPersistentJsonWithoutJavaTypeHeaders() {
         var template = mock(RabbitTemplate.class);
@@ -23,7 +23,7 @@ class OcrJobPublisherTest {
         }).when(template).send(anyString(), anyString(), any(Message.class), any(CorrelationData.class));
         var job = new OcrJob(1, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID() + ".pdf");
         var mapper = JsonMapper.builder().build();
-        var publisher = new OcrJobPublisher(template, mapper);
+        var publisher = new JobPublisher(template, mapper);
         publisher.publish(job);
         var message = ArgumentCaptor.forClass(Message.class);
         verify(template).send(eq(RabbitConfiguration.EXCHANGE), eq(RabbitConfiguration.ROUTING_KEY), message.capture(), any());
@@ -46,7 +46,7 @@ class OcrJobPublisherTest {
                 data.getFuture().complete(new CorrelationData.Confirm(ack, null));
                 return null;
             }).when(template).send(anyString(), anyString(), any(Message.class), any(CorrelationData.class));
-            assertThrows(MessagingException.class, () -> new OcrJobPublisher(template, JsonMapper.builder().build())
+            assertThrows(MessagingException.class, () -> new JobPublisher(template, JsonMapper.builder().build())
                     .publish(new OcrJob(1, UUID.randomUUID(), UUID.randomUUID(), "file.pdf")));
         }
     }
@@ -54,7 +54,7 @@ class OcrJobPublisherTest {
     @Test
     void declaresDurableTopologyAndMandatoryPublisher() {
         var config = new RabbitConfiguration();
-        assertEquals(6, config.ocrTopology().getDeclarables().size());
+        assertEquals(19, config.ocrTopology().getDeclarables().size());
         assertNotNull(config.rabbitTemplate(mock(org.springframework.amqp.rabbit.connection.ConnectionFactory.class)));
     }
 }
