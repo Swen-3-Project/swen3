@@ -35,6 +35,56 @@ describe('Document screens', () => {
   });
   afterEach(() => http.verify());
 
+  it('searches content, preserves relevance order and resets to the full list', () => {
+    const fixture = TestBed.createComponent(DocumentList);
+    http.expectOne('/api/documents').flush([document]);
+    fixture.componentInstance.searchControl.setValue(' Hello ');
+    fixture.componentInstance.search();
+    http.expectOne('/api/documents/search?q=Hello').flush([
+      { ...document, id: 'older' },
+      { ...document, id: 'newer' },
+    ]);
+    expect(fixture.componentInstance.documents().map((item) => item.id)).toEqual([
+      'older',
+      'newer',
+    ]);
+    fixture.componentInstance.resetSearch();
+    http.expectOne('/api/documents').flush([document]);
+    expect(fixture.componentInstance.query()).toBe('');
+  });
+
+  it('shows no search results and server errors clearly', () => {
+    const fixture = TestBed.createComponent(DocumentList);
+    http.expectOne('/api/documents').flush([]);
+    fixture.componentInstance.searchControl.setValue('Nothing');
+    fixture.componentInstance.search();
+    http.expectOne('/api/documents/search?q=Nothing').flush([]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Keine Treffer');
+    fixture.componentInstance.load();
+    http
+      .expectOne('/api/documents/search?q=Nothing')
+      .flush({}, { status: 503, statusText: 'Unavailable' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain(
+      'später erneut',
+    );
+  });
+
+  it('renders OCR text and preserves it when saving metadata', () => {
+    const fixture = TestBed.createComponent(DocumentDetail);
+    http
+      .expectOne('/api/documents/doc-1')
+      .flush({ ...document, status: 'INDEXED', ocrText: 'Hello World' });
+    fixture.detectChanges();
+    http.expectOne('/api/documents/doc-1/reminders').flush([]);
+    expect(fixture.nativeElement.querySelector('.ocr-text').textContent).toContain('Hello World');
+    fixture.componentInstance.startEdit();
+    fixture.componentInstance.save();
+    http.expectOne('/api/documents/doc-1').flush(document);
+    expect(fixture.componentInstance.document()?.ocrText).toBe('Hello World');
+  });
+
   function confirmation() {
     return {
       componentInstance: { filename: '' },

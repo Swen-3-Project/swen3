@@ -18,7 +18,16 @@
       <h1 class="filename">{{ doc.filename }}</h1>
       <p class="text-body-secondary">Dokumentdetails und Erinnerungen</p>
     </div>
-    <span class="badge rounded-pill text-bg-primary">{{ doc.status | statusLabel }}</span>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge rounded-pill text-bg-primary">{{ doc.status | statusLabel }}</span>
+      <button
+        class="btn btn-outline-primary"
+        (click)="retry()"
+        [disabled]="editing() || saving() || deleting()"
+      >
+        Aktualisieren
+      </button>
+    </div>
   </section>
   @if (notice()) {
     <div class="alert alert-success" role="status">{{ notice() }}</div>
@@ -140,7 +149,17 @@
     <div class="col-12 col-md-6">
       <section class="card card-body shadow-sm mb-4">
         <h2>OCR-Text</h2>
-        <p class="text-body-secondary">Noch nicht verfügbar.</p>
+        @if (doc.ocrText) {
+          <pre class="ocr-text">{{ doc.ocrText }}</pre>
+        } @else if (doc.ocrText === '') {
+          <p class="text-body-secondary">Es wurde kein Text erkannt.</p>
+        } @else if (doc.status === 'FAILED') {
+          <p class="text-danger">
+            Die Verarbeitung ist fehlgeschlagen. Bitte versuchen Sie einen neuen Upload.
+          </p>
+        } @else {
+          <p class="text-body-secondary">Die Texterkennung wurde noch nicht abgeschlossen.</p>
+        }
       </section>
     </div>
     <div class="col-12 col-md-6">

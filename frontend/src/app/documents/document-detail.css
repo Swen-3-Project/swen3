@@ -25,3 +25,11 @@ dd {
     grid-template-columns: 1fr;
   }
 }
+
+.ocr-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 30rem;
+  overflow: auto;
+  font-family: inherit;
+}
