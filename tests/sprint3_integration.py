@@ -1,9 +1,6 @@
 """Integration checks for an already running Docker Compose stack. No external packages."""
 import argparse
 import base64
-import hashlib
-import hmac
-import datetime
 import urllib.parse
 import xml.etree.ElementTree as ET
 import json
@@ -53,38 +50,20 @@ def request(url, method="GET", body=None, headers=None):
         return response.status, json.loads(raw) if raw and "json" in response.headers.get("Content-Type", "") else raw
 
 
-_storage_credentials = None
-
-
 def storage_request(key="", method="GET", query=""):
-    global _storage_credentials
-    if _storage_credentials is None:
-        _storage_credentials = (
-            compose("exec", "-T", "rest", "printenv", "S3_ACCESS_KEY"),
-            compose("exec", "-T", "rest", "printenv", "S3_SECRET_KEY"),
-        )
-    access, secret = _storage_credentials
-    now = datetime.datetime.now(datetime.timezone.utc)
-    stamp, day = now.strftime("%Y%m%dT%H%M%SZ"), now.strftime("%Y%m%d")
-    host = "localhost:" + compose("port", "rustfs", "9000").rsplit(":", 1)[1]
-    path = "/documents" + ("/" + urllib.parse.quote(key) if key else "")
-    payload_hash = hashlib.sha256(b"").hexdigest()
-    signed = "host;x-amz-content-sha256;x-amz-date"
-    canonical_headers = f"host:{host}\nx-amz-content-sha256:{payload_hash}\nx-amz-date:{stamp}\n"
-    canonical = f"{method}\n{path}\n{query}\n{canonical_headers}\n{signed}\n{payload_hash}"
-    scope = day + "/us-east-1/s3/aws4_request"
-    to_sign = "AWS4-HMAC-SHA256\n" + stamp + "\n" + scope + "\n" + hashlib.sha256(canonical.encode()).hexdigest()
-
-    def sign(key_bytes, text):
-        return hmac.new(key_bytes, text.encode(), hashlib.sha256).digest()
-
-    signing = sign(sign(sign(sign(("AWS4" + secret).encode(), day), "us-east-1"), "s3"), "aws4_request")
-    signature = hmac.new(signing, to_sign.encode(), hashlib.sha256).hexdigest()
-    headers = {
-        "x-amz-date": stamp, "x-amz-content-sha256": payload_hash,
-        "Authorization": f"AWS4-HMAC-SHA256 Credential={access}/{scope}, SignedHeaders={signed}, Signature={signature}",
-    }
-    return request("http://" + host + path + ("?" + query if query else ""), method, headers=headers)
+    resource = "/" + urllib.parse.quote(key) if key else ""
+    if query:
+        resource += "?" + query
+    # curl handles S3 signing using the REST container's configured credentials.
+    script = ('path=$1; shift; exec curl -sS --max-time 15 --aws-sigv4 aws:amz:us-east-1:s3 '
+              '--user "$S3_ACCESS_KEY:$S3_SECRET_KEY" --write-out "\\n%{http_code}" '
+              '"$S3_ENDPOINT/$S3_BUCKET$path" "$@"')
+    options = ["--head"] if method == "HEAD" else []
+    result = subprocess.run(["docker", "compose", "exec", "-T", "rest", "sh", "-c",
+                             script, "storage-check", resource, *options],
+                            cwd=ROOT, capture_output=True, check=True)
+    body, status = result.stdout.rsplit(b"\n", 1)
+    return int(status), body
 
 
 def storage_count():
