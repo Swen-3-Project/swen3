@@ -6,3 +6,5 @@ target/
 output/
 *.log
 *.iml
+__pycache__/
+tmp/
