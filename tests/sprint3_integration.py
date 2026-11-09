@@ -1,7 +1,8 @@
 """Integration checks for an already running Docker Compose stack. No external packages."""
 import argparse
 import base64
-import hashlib
+import urllib.parse
+import xml.etree.ElementTree as ET
 import json
 import os
 from pathlib import Path
@@ -32,7 +33,7 @@ def eventually(check, description, timeout=120):
             result = check()
             if result:
                 return result
-        except (urllib.error.URLError, TimeoutError, subprocess.CalledProcessError):
+        except (urllib.error.URLError, TimeoutError, ConnectionError, subprocess.CalledProcessError):
             pass
         time.sleep(1)
     raise AssertionError("Timed out: " + description)
@@ -47,6 +48,28 @@ def request(url, method="GET", body=None, headers=None):
     with response:
         raw = response.read()
         return response.status, json.loads(raw) if raw and "json" in response.headers.get("Content-Type", "") else raw
+
+
+def storage_request(key="", method="GET", query=""):
+    resource = "/" + urllib.parse.quote(key) if key else ""
+    if query:
+        resource += "?" + query
+    # curl handles S3 signing using the REST container's configured credentials.
+    script = ('path=$1; shift; exec curl -sS --max-time 15 --aws-sigv4 aws:amz:us-east-1:s3 '
+              '--user "$S3_ACCESS_KEY:$S3_SECRET_KEY" --write-out "\\n%{http_code}" '
+              '"$S3_ENDPOINT/$S3_BUCKET$path" "$@"')
+    options = ["--head"] if method == "HEAD" else []
+    result = subprocess.run(["docker", "compose", "exec", "-T", "rest", "sh", "-c",
+                             script, "storage-check", resource, *options],
+                            cwd=ROOT, capture_output=True, check=True)
+    body, status = result.stdout.rsplit(b"\n", 1)
+    return int(status), body
+
+
+def storage_count():
+    status, body = storage_request(query="list-type=2")
+    assert status == 200, f"RustFS listing returned {status}"
+    return len(ET.fromstring(body).findall("{*}Contents"))
 
 
 def upload(url, content, filename="hello.pdf"):
@@ -64,8 +87,10 @@ def main():
     pdf = (ROOT / "tests/fixtures/hello.pdf").read_bytes()
     ids = []
 
-    def create(content=pdf):
+    def create(content=pdf, wait_for_broker=False):
         status, document = upload(url, content)
+        if wait_for_broker and status == 503:
+            return None
         assert status == 201, f"Upload returned {status}"
         id = str(uuid.UUID(document["id"]))
         ids.append(id)
@@ -75,8 +100,9 @@ def main():
         assert document["status"] == "CREATED"
         key = sql(f"SELECT storage_key FROM documents WHERE id='{id}';")
         assert key == id + ".pdf"
-        digest = compose("exec", "-T", "rest", "sha256sum", "/app/uploads/" + key).split()[0]
-        assert digest == hashlib.sha256(content).hexdigest()
+        stored_status, stored = storage_request(key)
+        assert stored_status == 200
+        assert stored == content
         return id
 
     def received(id):
@@ -98,20 +124,20 @@ def main():
         assert sql("SELECT count(*) FROM documents;") == before
         print("PASS: invalid, empty and oversized PDFs rejected without document creation")
 
+        before = sql("SELECT count(*) FROM documents;")
+        files_before = storage_count()
         compose("stop", "rabbitmq")
-        id = create()
-        assert sql(f"SELECT state FROM pending_jobs WHERE document_id='{id}' AND kind='OCR_REQUESTED';") == "PENDING"
-        compose("restart", "rest")
-        eventually(ready, "REST restarted without broker")
-        assert request(url + "/api/documents/" + id)[0] == 200
+        assert upload(url, pdf)[0] == 503
+        assert storage_count() == files_before
+        assert sql("SELECT count(*) FROM documents;") == before
         compose("start", "rabbitmq")
-        eventually(lambda: received(id), "durable pending job delivered after broker recovery")
-        print("PASS: broker outage accepted; job survived REST restart and delivered on recovery")
+        eventually(lambda: compose("exec", "-T", "rabbitmq", "rabbitmq-diagnostics", "-q", "ping", check=False), "broker recovery")
+        id = eventually(lambda: create(wait_for_broker=True), "manual upload after broker recovery")
+        eventually(lambda: received(id), "manual retry after broker recovery")
+        print("PASS: broker outage returns 503; a manual retry succeeds")
 
         compose("stop", "ocr-worker")
         id = create()
-        eventually(lambda: sql(f"SELECT state FROM pending_jobs WHERE document_id='{id}' AND kind='OCR_REQUESTED';") == "SENT",
-                   "broker confirmed job while worker stopped")
         compose("restart", "rabbitmq")
         eventually(lambda: compose("exec", "-T", "rabbitmq", "rabbitmq-diagnostics", "-q", "ping", check=False), "broker restart")
         compose("start", "ocr-worker")
@@ -130,13 +156,13 @@ def main():
         eventually(lambda: request(queue, headers=auth)[1]["messages"] > old_count, "malformed message dead-lettered")
         print("PASS: malformed message sent to dead-letter queue")
 
-        compose("stop", "rabbitmq")
         id = create()
+        eventually(lambda: received(id), "last worker receipt")
+        compose("stop", "rabbitmq")
         assert request(url + "/api/documents/" + id, "DELETE")[0] == 204
-        eventually(lambda: compose("exec", "-T", "rest", "test", "!", "-e", "/app/uploads/" + id + ".pdf", check=False), "file cleanup without broker")
-        assert sql(f"SELECT state FROM pending_jobs WHERE document_id='{id}' AND kind='OCR_REQUESTED';") == "CANCELLED"
+        eventually(lambda: storage_request(id + ".pdf", "HEAD")[0] == 404, "file cleanup without broker")
         compose("start", "rabbitmq")
-        print("PASS: deletion cancels unsent OCR job and removes the stored file")
+        print("PASS: deletion removes the stored file directly")
     finally:
         compose("start", "rabbitmq", check=False)
         compose("start", "ocr-worker", check=False)
@@ -144,7 +170,7 @@ def main():
             try:
                 status, _ = request(url + "/api/documents/" + id, "DELETE")
                 if status in (204, 404):
-                    eventually(lambda: compose("exec", "-T", "rest", "test", "!", "-e", "/app/uploads/" + id + ".pdf", check=False), "test PDF cleanup", timeout=30)
+                    eventually(lambda: storage_request(id + ".pdf", "HEAD")[0] == 404, "test PDF cleanup", timeout=30)
             except (urllib.error.URLError, TimeoutError, AssertionError):
                 print("Cleanup could not finish for test document " + id)
 

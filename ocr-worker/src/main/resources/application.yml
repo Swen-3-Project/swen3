@@ -8,12 +8,20 @@ spring:
     username: ${RABBITMQ_USER:paperless}
     password: ${RABBITMQ_PASSWORD:paperless_dev}
     connection-timeout: 2s
+    publisher-confirm-type: correlated
+    publisher-returns: true
     listener:
       simple:
         acknowledge-mode: auto
-        default-requeue-rejected: false
-        prefetch: 10
+        default-requeue-rejected: true
+        prefetch: 1
         missing-queues-fatal: false
+storage:
+  endpoint: ${S3_ENDPOINT:http://localhost:19000}
+  access-key: ${S3_ACCESS_KEY:paperless_storage}
+  secret-key: ${S3_SECRET_KEY:paperless_storage_dev}
+  bucket: ${S3_BUCKET:documents}
+
 management:
   endpoints:
     web:

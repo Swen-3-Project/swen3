@@ -1,0 +1,29 @@
+server:
+  port: 8083
+spring:
+  application:
+    name: paperless-indexing-worker
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    username: ${RABBITMQ_USER:paperless}
+    password: ${RABBITMQ_PASSWORD:paperless_dev}
+    connection-timeout: 2s
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: auto
+        default-requeue-rejected: true
+        prefetch: 1
+        missing-queues-fatal: false
+search:
+  url: ${ELASTICSEARCH_URL:http://localhost:9200}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+logging:
+  structured:
+    format:
+      console: logstash

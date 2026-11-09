@@ -21,16 +21,24 @@ spring:
     connection-timeout: 2s
     publisher-confirm-type: correlated
     publisher-returns: true
+    listener:
+      simple:
+        default-requeue-rejected: true
+        prefetch: 1
+        missing-queues-fatal: false
   servlet:
     multipart:
       max-file-size: ${UPLOAD_MAX_FILE_SIZE:20MB}
       max-request-size: ${UPLOAD_MAX_REQUEST_SIZE:21MB}
 
 storage:
-  directory: ${UPLOAD_DIRECTORY:./output/uploads}
+  endpoint: ${S3_ENDPOINT:http://localhost:19000}
+  access-key: ${S3_ACCESS_KEY:paperless_storage}
+  secret-key: ${S3_SECRET_KEY:paperless_storage_dev}
+  bucket: ${S3_BUCKET:documents}
 
-jobs:
-  poll-ms: ${JOB_POLL_MS:3000}
+search:
+  url: ${ELASTICSEARCH_URL:http://localhost:9200}
 
 logging:
   structured:

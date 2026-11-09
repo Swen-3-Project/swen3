@@ -3,6 +3,7 @@ package com.swen3.paperless.common;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import com.swen3.paperless.storage.StorageException;
+import com.swen3.paperless.messaging.MessagingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.ErrorResponse;
@@ -46,6 +47,20 @@ public class ApiExceptionHandler {
         log.warn("storage_failed errorType={}", exception.getClass().getSimpleName());
         return ResponseEntity.status(503).body(ProblemDetail.forStatusAndDetail(
                 HttpStatus.SERVICE_UNAVAILABLE, "Document storage is temporarily unavailable"));
+    }
+
+    @ExceptionHandler(MessagingException.class)
+    public ResponseEntity<ProblemDetail> messagingFailure(MessagingException exception) {
+        log.warn("messaging_failed");
+        return ResponseEntity.status(503).body(ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE, "Document processing is temporarily unavailable. Please try again later."));
+    }
+
+    @ExceptionHandler(com.swen3.paperless.search.SearchException.class)
+    public ResponseEntity<ProblemDetail> searchFailure(Exception exception) {
+        log.warn("search_failed");
+        return ResponseEntity.status(503).body(ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE, "Document search is temporarily unavailable"));
     }
 
     @ExceptionHandler(Exception.class)

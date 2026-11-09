@@ -1,4 +1,22 @@
 services:
+  rustfs:
+    image: rustfs/rustfs:1.0.4
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:-paperless_storage}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:-paperless_storage_dev}
+      RUSTFS_CONSOLE_ENABLE: "true"
+    command: ["/data"]
+    ports:
+      - "127.0.0.1:${S3_PORT:-19000}:9000"
+      - "127.0.0.1:${S3_CONSOLE_PORT:-19001}:9001"
+    volumes:
+      - rustfs_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+
   rabbitmq:
     image: rabbitmq:4.3-management
     environment:
@@ -34,19 +52,27 @@ services:
   rest:
     build: .
     environment:
+      LOGGING_FILE_NAME: /app/logs/rest.log
+      LOGGING_STRUCTURED_FORMAT_FILE: logstash
+      ELASTICSEARCH_URL: http://elasticsearch:9200
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-paperless}
       DB_USER: ${POSTGRES_USER:-paperless}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-paperless_dev}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: ${RABBITMQ_USER:-paperless}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-paperless_dev}
-      UPLOAD_DIRECTORY: /app/uploads
+      S3_ENDPOINT: http://rustfs:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-paperless_storage}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-paperless_storage_dev}
+      S3_BUCKET: documents
     volumes:
-      - uploads_data:/app/uploads
+      - application_logs:/app/logs
     ports:
       - "8081:8081"
     depends_on:
       db:
+        condition: service_healthy
+      rustfs:
         condition: service_healthy
 
   ui:
@@ -59,7 +85,15 @@ services:
 
   ocr-worker:
     build: ./ocr-worker
+    volumes:
+      - application_logs:/app/logs
     environment:
+      LOGGING_FILE_NAME: /app/logs/ocr-worker.log
+      LOGGING_STRUCTURED_FORMAT_FILE: logstash
+      S3_ENDPOINT: http://rustfs:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-paperless_storage}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-paperless_storage_dev}
+      S3_BUCKET: documents
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: ${RABBITMQ_USER:-paperless}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-paperless_dev}
@@ -67,7 +101,84 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.6
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.ml.enabled: "false"
+      node.store.allow_mmap: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    mem_limit: 1536m
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s"]
+      interval: 5s
+      timeout: 3s
+      start_period: 40s
+      retries: 24
+
+  indexing-worker:
+    build: ./indexing-worker
+    volumes:
+      - application_logs:/app/logs
+    environment:
+      LOGGING_FILE_NAME: /app/logs/indexing-worker.log
+      LOGGING_STRUCTURED_FORMAT_FILE: logstash
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-paperless}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-paperless_dev}
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:9.5.6
+    environment:
+      LS_JAVA_OPTS: "-Xms512m -Xmx512m"
+      XPACK_MONITORING_ENABLED: "false"
+    volumes:
+      - ./elk/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - application_logs:/app-logs:ro
+      - logstash_data:/usr/share/logstash/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9600/_node/pipelines"]
+      interval: 10s
+      timeout: 5s
+      start_period: 40s
+      retries: 18
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.5.6
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+      SERVER_HOST: "0.0.0.0"
+      TELEMETRY_ENABLED: "false"
+    ports:
+      - "127.0.0.1:5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 18
+
 volumes:
   postgres_data:
   rabbitmq_data:
-  uploads_data:
+  rustfs_data:
+  elasticsearch_data:
+  application_logs:
+  logstash_data:

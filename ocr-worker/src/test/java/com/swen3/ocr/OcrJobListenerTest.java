@@ -3,62 +3,62 @@ package com.swen3.ocr;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.core.Message;
 import tools.jackson.databind.json.JsonMapper;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class OcrJobListenerTest {
-    @Test void logsIdentityAndAcceptsRedeliveryWithoutSideEffects() {
-        UUID id = UUID.randomUUID();
-        UUID jobId = UUID.randomUUID();
-        var mapper = JsonMapper.builder().build();
-        var message = new Message(mapper.writeValueAsBytes(new OcrJob(1, jobId, id, id + ".pdf")));
-        var listener = new OcrJobListener(mapper);
-        var logger = (Logger) LoggerFactory.getLogger(OcrJobListener.class);
-        var appender = new ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>() {
-            @Override protected void append(ch.qos.logback.classic.spi.ILoggingEvent event) {
-                event.prepareForDeferredProcessing();
-                super.append(event);
-            }
-        };
-        appender.start();
-        logger.addAppender(appender);
-        try {
-            listener.receive(message);
-            listener.receive(message);
-            assertEquals(2, appender.list.size());
-            assertTrue(appender.list.getFirst().getFormattedMessage().contains("ocr_job_received"));
-            assertEquals(id.toString(), appender.list.getFirst().getMDCPropertyMap().get("documentId"));
-            assertEquals(jobId.toString(), appender.list.getFirst().getMDCPropertyMap().get("jobId"));
-            assertNull(MDC.get("documentId"));
-        } finally { logger.detachAppender(appender); }
+    private final OcrService ocr = mock(OcrService.class);
+    private final ResultPublisher publisher = mock(ResultPublisher.class);
+    private final JsonMapper mapper = JsonMapper.builder().build();
+    private final OcrJobListener listener = new OcrJobListener(mapper, ocr, publisher);
+    private final UUID id = UUID.randomUUID();
+    private final OcrJob job = new OcrJob(1, UUID.randomUUID(), id, id + ".pdf");
+
+    @Test void deliversTextWithTheOriginalIdentity() {
+        when(ocr.extract(job.storageKey())).thenReturn("Hello World");
+        listener.receive(message());
+        verify(publisher).publish(new OcrResult(1, job.jobId(), id, true, "Hello World"));
+        assertNull(org.slf4j.MDC.get("documentId"));
     }
 
-    @Test void rejectsMalformedUnsupportedAndUnsafeJobsWithoutRequeue() {
-        var listener = new OcrJobListener(JsonMapper.builder().build());
+    @Test void retriesOcrFailureThreeTimesAndReportsFailure() {
+        when(ocr.extract(job.storageKey())).thenThrow(new OcrException("invalid PDF"));
+        assertThrows(AmqpRejectAndDontRequeueException.class, () -> listener.receive(message()));
+        verify(ocr, times(3)).extract(job.storageKey());
+        verify(publisher).publish(new OcrResult(1, job.jobId(), id, false, null));
+    }
+
+    @Test void leavesResultDeliveryFailuresAvailableForRedelivery() {
+        when(ocr.extract(job.storageKey())).thenReturn("Hello");
+        doThrow(new AmqpException("broker unavailable")).when(publisher).publish(any());
+        assertThrows(AmqpException.class, () -> listener.receive(message()));
+        verify(ocr).extract(job.storageKey());
+    }
+
+    @Test void rejectsInvalidMessagesBeforeOcr() {
         for (String json : List.of("not JSON", "null", "{}", "{\"schemaVersion\":2}",
                 "{\"schemaVersion\":1,\"jobId\":\"not-uuid\"}",
-                "{\"schemaVersion\":1,\"jobId\":\"00000000-0000-0000-0000-000000000001\","
-                        + "\"documentId\":\"00000000-0000-0000-0000-000000000002\",\"storageKey\":\"../secret\"}",
+                "{\"schemaVersion\":1,\"jobId\":\"" + job.jobId() + "\",\"documentId\":\"" + id + "\",\"storageKey\":\"../secret\"}",
                 "x".repeat(4097))) {
-            var exception = assertThrows(AmqpRejectAndDontRequeueException.class,
+            var error = assertThrows(AmqpRejectAndDontRequeueException.class,
                     () -> listener.receive(new Message(json.getBytes(StandardCharsets.UTF_8))));
-            assertEquals("Invalid OCR job contract", exception.getMessage());
-            assertNull(exception.getCause());
+            assertNull(error.getCause());
         }
+        verifyNoInteractions(ocr, publisher);
     }
 
-    @Test void topologyIsDurableAndRejectedMessagesHaveADeadLetterRoute() {
-        var topology = new RabbitConfiguration().ocrTopology();
-        var queues = topology.getDeclarablesByType(org.springframework.amqp.core.Queue.class);
-        assertEquals(2, queues.size());
+    @Test void topologyIsDurableAndSupportsResults() {
+        var configuration = new RabbitConfiguration();
+        var queues = configuration.ocrTopology().getDeclarablesByType(org.springframework.amqp.core.Queue.class);
+        assertEquals(4, queues.size());
         assertTrue(queues.stream().allMatch(org.springframework.amqp.core.Queue::isDurable));
-        assertEquals("paperless.ocr.dead", queues.getFirst().getArguments().get("x-dead-letter-exchange"));
+        assertNotNull(configuration.rabbitTemplate(mock(org.springframework.amqp.rabbit.connection.ConnectionFactory.class)));
     }
+
+    private Message message() { return new Message(mapper.writeValueAsBytes(job)); }
 }

@@ -6,7 +6,7 @@ COPY src ./src
 RUN mvn -B -ntp verify
 
 FROM eclipse-temurin:25-jre
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends curl poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /workspace/target/ocr-worker-1.0.0-SNAPSHOT.jar app.jar
 HEALTHCHECK --interval=5s --timeout=3s --start-period=40s --retries=12 CMD curl -fsS http://localhost:8082/actuator/health || exit 1
