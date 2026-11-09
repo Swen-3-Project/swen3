@@ -5,7 +5,7 @@ import com.swen3.paperless.common.UploadValidationException;
 import com.swen3.paperless.document.dto.CreateDocumentRequest;
 import com.swen3.paperless.document.dto.DocumentResponse;
 import com.swen3.paperless.messaging.OcrJob;
-import com.swen3.paperless.messaging.OcrJobPublisher;
+import com.swen3.paperless.messaging.JobPublisher;
 import com.swen3.paperless.storage.FileStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,9 +18,9 @@ public class DocumentUploadService {
     private static final Logger log = LoggerFactory.getLogger(DocumentUploadService.class);
     private final FileStorage storage;
     private final DocumentService documents;
-    private final OcrJobPublisher publisher;
+    private final JobPublisher publisher;
 
-    public DocumentUploadService(FileStorage storage, DocumentService documents, OcrJobPublisher publisher) {
+    public DocumentUploadService(FileStorage storage, DocumentService documents, JobPublisher publisher) {
         this.storage = storage;
         this.documents = documents;
         this.publisher = publisher;
@@ -34,8 +34,9 @@ public class DocumentUploadService {
         }
         UUID id = UUID.randomUUID();
         try (var scope = MDC.putCloseable("documentId", id.toString())) {
-            FileStorage.StoredFile stored = storage.store(id, file);
+            FileStorage.StoredFile stored = null;
             try {
+                stored = storage.store(id, file);
                 var request = new CreateDocumentRequest(filename, "application/pdf", stored.size(), cleanTitle, description);
                 // This separate service commits the document before a worker can receive its ID.
                 DocumentResponse response = documents.createUploaded(id, request, stored.key());
@@ -43,7 +44,7 @@ public class DocumentUploadService {
                 log.info("document_uploaded");
                 return response;
             } catch (RuntimeException exception) {
-                cleanupFailedUpload(id, stored.key());
+                if (stored != null) cleanupFailedUpload(id, stored.key());
                 log.warn("upload_failed errorType={}", exception.getClass().getSimpleName());
                 throw exception;
             }

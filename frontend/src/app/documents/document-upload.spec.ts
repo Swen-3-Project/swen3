@@ -7,7 +7,9 @@ import { DocumentUpload } from './document-upload';
 describe('PDF upload', () => {
   let http: HttpTestingController;
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
@@ -45,6 +47,17 @@ describe('PDF upload', () => {
     expect(req.request.headers.has('Content-Type')).toBe(false);
     req.flush({ id: 'uploaded' });
     expect(navigate).toHaveBeenCalledWith(['/documents', 'uploaded']);
+    expect(component.saving()).toBe(false);
+  });
+
+  it('shows broker failure and keeps the file for a manual retry', () => {
+    const component = TestBed.createComponent(DocumentUpload).componentInstance;
+    const file = new File(['%PDF-'], 'file.pdf');
+    select(component, file);
+    component.save();
+    http.expectOne('/api/documents/upload').flush({}, { status: 503, statusText: 'Unavailable' });
+    expect(component.error()).toContain('später erneut');
+    expect(component.file()).toBe(file);
     expect(component.saving()).toBe(false);
   });
 

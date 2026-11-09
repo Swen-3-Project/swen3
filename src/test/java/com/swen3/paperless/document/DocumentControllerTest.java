@@ -71,6 +71,17 @@ class DocumentControllerTest {
     }
 
     @Test
+    void searchesAtTheRequiredEndpointAndRejectsOversizedQueries() throws Exception {
+        when(service.search("Hello")).thenReturn(java.util.List.of());
+        mvc.perform(get("/api/documents/search").param("q", " Hello "))
+                .andExpect(status().isOk()).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().json("[]"));
+        org.mockito.Mockito.verify(service).search("Hello");
+        mvc.perform(get("/api/documents/search").param("q", "x".repeat(201))).andExpect(status().isBadRequest());
+        when(service.search("unavailable")).thenThrow(new com.swen3.paperless.search.SearchException(new IllegalStateException()));
+        mvc.perform(get("/api/documents/search").param("q", "unavailable")).andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
     void deletionReturns204() throws Exception {
         mvc.perform(delete("/api/documents/{id}", UUID.randomUUID()))
                 .andExpect(status().isNoContent());

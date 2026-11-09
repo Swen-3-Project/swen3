@@ -41,6 +41,12 @@ public class DocumentEntity {
     @Column(name = "storage_key", length = 255)
     private String storageKey;
 
+    @Column(name = "ocr_text", columnDefinition = "text")
+    private String ocrText;
+
+    public String getOcrText() { return ocrText; }
+    public void setOcrText(String ocrText) { this.ocrText = ocrText; }
+
     public DocumentEntity() {
     }
 

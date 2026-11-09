@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import com.swen3.paperless.document.dto.CreateDocumentRequest;
 import com.swen3.paperless.document.dto.DocumentResponse;
+import com.swen3.paperless.document.dto.DocumentDetailResponse;
+import org.springframework.web.bind.annotation.RequestParam;
 import com.swen3.paperless.document.dto.UpdateDocumentRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +40,14 @@ public class DocumentController {
         return service.list();
     }
 
+    @GetMapping("/search")
+    public List<DocumentResponse> search(@RequestParam(defaultValue = "") String q) {
+        if (q.length() > 200) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST);
+        return service.search(q.strip());
+    }
+
     @GetMapping("/{id}")
-    public DocumentResponse get(@PathVariable UUID id) {
+    public DocumentDetailResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 

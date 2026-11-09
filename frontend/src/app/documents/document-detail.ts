@@ -6,7 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { Subject, catchError, combineLatest, of, startWith, switchMap } from 'rxjs';
 import { DocumentApi } from '../core/document-api';
-import { Document } from '../core/models';
+import { DocumentDetails } from '../core/models';
 import { apiErrorMessage } from '../core/api-error';
 import { FileSize } from '../shared/file-size';
 import { StatusLabel } from '../shared/status-label';
@@ -28,7 +28,7 @@ export class DocumentDetail {
   private deleteModal?: NgbModalRef;
   private readonly destroyRef = inject(DestroyRef);
   private readonly reload = new Subject<void>();
-  readonly document = signal<Document | null>(null);
+  readonly document = signal<DocumentDetails | null>(null);
   readonly loading = signal(true);
   readonly loadError = signal('');
   readonly actionError = signal('');
@@ -103,7 +103,7 @@ export class DocumentDetail {
         next: (updated) => {
           this.saving.set(false);
           if (this.document()?.id !== document.id) return;
-          this.document.set(updated);
+          this.document.set({ ...document, ...updated });
           this.editing.set(false);
           this.notice.set('Metadaten gespeichert.');
         },

@@ -10,6 +10,36 @@
     <a class="btn btn-outline-primary" routerLink="/documents/new">Dokument anlegen</a>
   </div>
 </section>
+<form class="card card-body shadow-sm mb-4" (ngSubmit)="search()">
+  <label class="form-label" for="document-search">Dokumentinhalt durchsuchen</label>
+  <div class="d-flex flex-wrap gap-2">
+    <input
+      id="document-search"
+      class="form-control flex-grow-1"
+      type="search"
+      [formControl]="searchControl"
+      maxlength="200"
+      placeholder="Suchbegriff, z. B. Hello"
+    />
+    <button class="btn btn-primary" type="submit" [disabled]="loading() || searchControl.invalid">
+      Suchen
+    </button>
+    <button
+      class="btn btn-outline-primary"
+      type="button"
+      (click)="resetSearch()"
+      [disabled]="loading()"
+    >
+      Zurücksetzen
+    </button>
+    <button class="btn btn-outline-primary" type="button" (click)="load()" [disabled]="loading()">
+      Aktualisieren
+    </button>
+  </div>
+  <p class="text-body-secondary small mb-0 mt-2">
+    Die Suche berücksichtigt auch kleine Tippfehler. Neue Uploads erscheinen nach der Texterkennung.
+  </p>
+</form>
 @if (loading()) {
   <div class="d-flex align-items-center gap-2 py-3" role="status">
     <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span
@@ -24,9 +54,14 @@
   <section class="card card-body shadow-sm mb-4">
     @if (!documents().length) {
       <div class="text-center text-body-secondary py-4">
-        <h2>Noch keine Dokumente</h2>
-        <p>Legen Sie ein Dokument an, um Ihre Ablage zu beginnen.</p>
-        <a class="btn btn-primary" routerLink="/documents/new">Erstes Dokument anlegen</a>
+        @if (query()) {
+          <h2>Keine Treffer</h2>
+          <p>Für „{{ query() }}“ wurden keine Dokumente gefunden.</p>
+        } @else {
+          <h2>Noch keine Dokumente</h2>
+          <p>Legen Sie ein Dokument an, um Ihre Ablage zu beginnen.</p>
+          <a class="btn btn-primary" routerLink="/documents/new">Erstes Dokument anlegen</a>
+        }
       </div>
     } @else {
       <p class="text-body-secondary">{{ documents().length }} Dokumente · Neueste zuerst</p>
