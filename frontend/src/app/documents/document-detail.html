@@ -165,7 +165,11 @@
     <div class="col-12 col-md-6">
       <section class="card card-body shadow-sm mb-4">
         <h2>Zusammenfassung</h2>
-        <p class="text-body-secondary">Noch nicht verfügbar.</p>
+        @if (doc.summary) {
+          <p class="preserve-text">{{ doc.summary }}</p>
+        } @else {
+          <p class="text-body-secondary">Noch nicht verfügbar.</p>
+        }
       </section>
     </div>
   </div>

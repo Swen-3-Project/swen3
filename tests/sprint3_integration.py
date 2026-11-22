@@ -82,7 +82,7 @@ def upload(url, content, filename="hello.pdf"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--url", default=os.environ.get("PAPERLESS_URL", "http://localhost"))
+    parser.add_argument("--url", default=os.environ.get("PAPERLESS_URL", "http://localhost:8080"))
     url = parser.parse_args().url.rstrip("/")
     pdf = (ROOT / "tests/fixtures/hello.pdf").read_bytes()
     ids = []

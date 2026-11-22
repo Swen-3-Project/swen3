@@ -11,7 +11,7 @@ from sprint3_integration import ROOT, compose, eventually, request, storage_requ
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--url", default=os.environ.get("PAPERLESS_URL", "http://localhost"))
+    parser.add_argument("--url", default=os.environ.get("PAPERLESS_URL", "http://localhost:8080"))
     url = parser.parse_args().url.rstrip("/")
     ids = []
 

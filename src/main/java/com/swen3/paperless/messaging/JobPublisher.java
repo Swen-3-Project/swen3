@@ -30,6 +30,10 @@ public class JobPublisher {
         send("index.requested", job, job.jobId(), job.documentId());
     }
 
+    public void publish(SummaryJob job) {
+        send("summary.requested", job, job.jobId(), job.documentId());
+    }
+
     private void send(String routingKey, Object payload, UUID jobId, UUID documentId) {
         var confirmation = new CorrelationData(jobId.toString());
         try {

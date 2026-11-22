@@ -71,18 +71,25 @@ describe('Document screens', () => {
     );
   });
 
-  it('renders OCR text and preserves it when saving metadata', () => {
+  it('preserves OCR text and the summary when saving metadata', () => {
     const fixture = TestBed.createComponent(DocumentDetail);
     http
       .expectOne('/api/documents/doc-1')
-      .flush({ ...document, status: 'INDEXED', ocrText: 'Hello World' });
+      .flush({
+        ...document,
+        status: 'INDEXED',
+        ocrText: 'Hello World',
+        summary: 'Das Dokument sagt Hallo.',
+      });
     fixture.detectChanges();
     http.expectOne('/api/documents/doc-1/reminders').flush([]);
     expect(fixture.nativeElement.querySelector('.ocr-text').textContent).toContain('Hello World');
+    expect(fixture.nativeElement.textContent).toContain('Das Dokument sagt Hallo.');
     fixture.componentInstance.startEdit();
     fixture.componentInstance.save();
     http.expectOne('/api/documents/doc-1').flush(document);
     expect(fixture.componentInstance.document()?.ocrText).toBe('Hello World');
+    expect(fixture.componentInstance.document()?.summary).toBe('Das Dokument sagt Hallo.');
   });
 
   function confirmation() {

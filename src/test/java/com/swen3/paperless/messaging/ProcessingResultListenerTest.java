@@ -34,6 +34,7 @@ class ProcessingResultListenerTest {
         var order = inOrder(documents, publisher);
         order.verify(documents).applyOcrResult(id, true, "Hello");
         order.verify(publisher).publish(new IndexJob(1, job, id, "a.pdf", "Hello"));
+        order.verify(publisher).publish(new SummaryJob(1, job, id, "Hello"));
         document.setStatus(DocumentStatus.INDEXED);
         listener.receive(message);
         verify(publisher, times(1)).publish(any(IndexJob.class));
@@ -48,6 +49,26 @@ class ProcessingResultListenerTest {
         listener.receive(message("ocr.completed", new OcrResult(1, job, id, false, null)));
         verifyNoInteractions(publisher);
         verify(documents).applyOcrResult(id, false, null);
+    }
+
+    @Test void skipsSummarizingBlankOcrText() {
+        var document = new DocumentEntity();
+        document.setId(id);
+        document.setFilename("a.pdf");
+        document.setOcrText("");
+        document.setStatus(DocumentStatus.OCR_COMPLETED);
+        when(documents.applyOcrResult(id, true, "")).thenReturn(document);
+        listener.receive(message("ocr.completed", new OcrResult(1, job, id, true, "")));
+        verify(publisher).publish(new IndexJob(1, job, id, "a.pdf", ""));
+        verifyNoMoreInteractions(publisher);
+    }
+
+    @Test void storesTrimmedSummaryAndRejectsBlankResults() {
+        listener.receive(message("summary.completed", new SummaryResult(1, job, id, " Summary ")));
+        verify(documents).storeSummary(id, "Summary");
+        assertThrows(AmqpRejectAndDontRequeueException.class,
+                () -> listener.receive(message("summary.completed", new SummaryResult(1, job, id, " "))));
+        verifyNoMoreInteractions(documents);
     }
 
     @Test void cleansLateIndexResultForDeletedDocument() {
