@@ -10,7 +10,7 @@
     <a class="btn btn-outline-primary" routerLink="/documents/new">Dokument anlegen</a>
   </div>
 </section>
-<form class="card card-body shadow-sm mb-4" (ngSubmit)="search()">
+<form class="card card-body shadow-sm mb-4" (submit)="$event.preventDefault(); search()">
   <label class="form-label" for="document-search">Dokumentinhalt durchsuchen</label>
   <div class="d-flex flex-wrap gap-2">
     <input
