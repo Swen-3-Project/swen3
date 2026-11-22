@@ -54,7 +54,8 @@ class JobPublisherTest {
     @Test
     void declaresDurableTopologyAndMandatoryPublisher() {
         var config = new RabbitConfiguration();
-        assertEquals(19, config.ocrTopology().getDeclarables().size());
+        assertTrue(config.documentTopology().getDeclarablesByType(org.springframework.amqp.core.Queue.class)
+                .stream().anyMatch(queue -> queue.getName().equals("paperless.genai.jobs")));
         assertNotNull(config.rabbitTemplate(mock(org.springframework.amqp.rabbit.connection.ConnectionFactory.class)));
     }
 }

@@ -9,8 +9,10 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.DynamicUpdate;
 
 @Entity
+@DynamicUpdate
 @Table(name = "documents")
 public class DocumentEntity {
     @Id
@@ -44,8 +46,12 @@ public class DocumentEntity {
     @Column(name = "ocr_text", columnDefinition = "text")
     private String ocrText;
 
+    @Column(columnDefinition = "text")
+    private String summary;
+
     public String getOcrText() { return ocrText; }
     public void setOcrText(String ocrText) { this.ocrText = ocrText; }
+    public String getSummary() { return summary; }
 
     public DocumentEntity() {
     }

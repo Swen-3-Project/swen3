@@ -28,13 +28,15 @@ public class ProcessingResultListener {
         this.search = search;
     }
 
-    @RabbitListener(queues = {"paperless.ocr.results", "paperless.index.results"}, concurrency = "1")
+    @RabbitListener(queues = {"paperless.ocr.results", "paperless.index.results", "paperless.genai.results"}, concurrency = "1")
     public void receive(Message message) {
         String route = message.getMessageProperties().getReceivedRoutingKey();
         if ("ocr.completed".equals(route)) {
             acceptOcr(read(message, OcrResult.class));
         } else if ("index.completed".equals(route)) {
             acceptIndex(read(message, IndexResult.class));
+        } else if ("summary.completed".equals(route)) {
+            acceptSummary(read(message, SummaryResult.class));
         } else {
             throw invalidResult();
         }
@@ -56,7 +58,22 @@ public class ProcessingResultListener {
                 publisher.publish(new IndexJob(1, result.jobId(), document.getId(),
                         document.getFilename(), document.getOcrText()));
             }
+            String text = document.getOcrText();
+            if (result.success() && text != null && !text.isBlank() && document.getSummary() == null) {
+                publisher.publish(new SummaryJob(1, result.jobId(), document.getId(), text));
+            }
             log.info("ocr_result_saved success={}", result.success());
+        }
+    }
+
+    private void acceptSummary(SummaryResult result) {
+        if (result == null) throw invalidResult();
+        validateIdentity(result.schemaVersion(), result.jobId(), result.documentId());
+        if (result.summary() == null || result.summary().isBlank()) throw invalidResult();
+        try (var documentScope = MDC.putCloseable("documentId", result.documentId().toString());
+             var jobScope = MDC.putCloseable("jobId", result.jobId().toString())) {
+            boolean saved = documents.storeSummary(result.documentId(), result.summary().strip());
+            log.info("summary_result_received saved={}", saved);
         }
     }
 

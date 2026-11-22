@@ -78,7 +78,7 @@ services:
   ui:
     build: ./frontend
     ports:
-      - "${UI_PORT:-80}:80"
+      - "${UI_PORT:-8080}:80"
     depends_on:
       rest:
         condition: service_started
@@ -136,6 +136,25 @@ services:
       rabbitmq:
         condition: service_healthy
       elasticsearch:
+        condition: service_healthy
+
+  genai-worker:
+    build: ./genai-worker
+    volumes:
+      - application_logs:/app/logs
+    environment:
+      LOGGING_FILE_NAME: /app/logs/genai-worker.log
+      LOGGING_STRUCTURED_FORMAT_FILE: logstash
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-paperless}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-paperless_dev}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      GEMINI_URL: ${GEMINI_URL:-https://generativelanguage.googleapis.com}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      rest:
         condition: service_healthy
 
   logstash:
