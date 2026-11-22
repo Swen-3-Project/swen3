@@ -1,0 +1,27 @@
+server:
+  port: 8084
+spring:
+  application:
+    name: paperless-genai-worker
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    username: ${RABBITMQ_USER:paperless}
+    password: ${RABBITMQ_PASSWORD:paperless_dev}
+    connection-timeout: 2s
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        default-requeue-rejected: true
+        prefetch: 1
+        missing-queues-fatal: false
+gemini:
+  url: ${GEMINI_URL:https://generativelanguage.googleapis.com}
+  key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-3.1-flash-lite}
+logging:
+  structured:
+    format:
+      console: logstash
