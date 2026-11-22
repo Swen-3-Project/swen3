@@ -108,6 +108,11 @@ public class DocumentService {
     }
 
     @Transactional
+    public boolean storeSummary(UUID id, String summary) {
+        return repository.saveSummary(id, summary) != 0;
+    }
+
+    @Transactional
     public void delete(UUID id) {
         DocumentEntity document = requireEntity(id);
         if (document.getStorageKey() != null) {
