@@ -42,6 +42,7 @@ jobs:
           java-version: '25'
           cache: maven
       - run: mvn -B -ntp -f ocr-worker/pom.xml verify
+      - run: mvn -B -ntp -f genai-worker/pom.xml verify
   indexing:
     runs-on: ubuntu-latest
     steps:
