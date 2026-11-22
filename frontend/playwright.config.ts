@@ -7,7 +7,7 @@ export default defineConfig({
   timeout: 30000,
   reporter: 'list',
   use: {
-    baseURL: process.env['PAPERLESS_URL'] ?? 'http://localhost',
+    baseURL: process.env['PAPERLESS_URL'] ?? 'http://localhost:8080',
     headless: true,
     viewport: { width: 1280, height: 900 },
     locale: 'de-AT',

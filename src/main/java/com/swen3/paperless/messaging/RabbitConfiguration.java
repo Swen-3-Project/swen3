@@ -15,15 +15,18 @@ public class RabbitConfiguration {
     public static final String ROUTING_KEY = "ocr.requested";
 
     @Bean
-    public Declarables ocrTopology() {
+    public Declarables documentTopology() {
         var exchange = new DirectExchange(EXCHANGE, true, false);
         var ocrDead = new DirectExchange("paperless.ocr.dead", true, false);
         var indexDead = new DirectExchange("paperless.index.dead", true, false);
-        var topology = new ArrayList<Declarable>(List.of(exchange, ocrDead, indexDead));
+        var genAiDead = new DirectExchange("paperless.genai.dead", true, false);
+        var topology = new ArrayList<Declarable>(List.of(exchange, ocrDead, indexDead, genAiDead));
         addQueue(topology, exchange, ocrDead, QUEUE, "paperless.ocr.dead-letter", ROUTING_KEY);
         addQueue(topology, exchange, ocrDead, "paperless.ocr.results", "paperless.ocr.results.dead-letter", "ocr.completed");
         addQueue(topology, exchange, indexDead, "paperless.index.jobs", "paperless.index.dead-letter", "index.requested");
         addQueue(topology, exchange, indexDead, "paperless.index.results", "paperless.index.results.dead-letter", "index.completed");
+        addQueue(topology, exchange, genAiDead, "paperless.genai.jobs", "paperless.genai.dead-letter", "summary.requested");
+        addQueue(topology, exchange, genAiDead, "paperless.genai.results", "paperless.genai.results.dead-letter", "summary.completed");
         return new Declarables(topology);
     }
 

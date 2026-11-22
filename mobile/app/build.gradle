@@ -1,0 +1,31 @@
+import groovy.json.JsonOutput
+
+plugins {
+    id 'com.android.application' version '8.7.3'
+}
+
+android {
+    namespace = 'com.swen3.paperless.mobile'
+    compileSdk = 33
+
+    defaultConfig {
+        applicationId = 'com.swen3.paperless.mobile'
+        minSdk = 23
+        targetSdk = 33
+        versionCode = 1
+        versionName = '1.0'
+        def url = providers.gradleProperty('paperlessUrl').getOrElse('http://10.0.2.2:8080')
+        buildConfigField 'String', 'PAPERLESS_URL', JsonOutput.toJson(url)
+        manifestPlaceholders.allowCleartext = 'false'
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    buildTypes {
+        debug {
+            manifestPlaceholders.allowCleartext = 'true'
+        }
+    }
+}
