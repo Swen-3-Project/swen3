@@ -10,6 +10,7 @@ export interface Document {
 }
 export interface DocumentDetails extends Document {
   ocrText: string | null;
+  summary: string | null;
 }
 export interface CreateDocument {
   filename: string;
